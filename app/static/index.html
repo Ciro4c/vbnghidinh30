@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<!-- Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chuẩn hóa văn bản NĐ 30/2020 và slide chuẩn</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f5fbf'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='white' font-family='serif'%3EVB%3C/text%3E%3C/svg%3E">
+<style>
+  :root { color-scheme: light dark;
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5f6b7a; --line:#d5dae1;
+    --accent:#1f5fbf; --accent-text:#fff; --err:#b3261e; --warn:#8a5a00; --warn-bg:#fff4d6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171c; --card:#1c2027; --text:#e6e9ee; --muted:#9aa5b4; --line:#343b46;
+            --accent:#5b9bff; --accent-text:#0b1220; --err:#ff8a80; --warn:#ffd98a; --warn-bg:#3a2f14; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,"Segoe UI",sans-serif; }
+  main { max-width:880px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 16px; }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; }
+  .tabs button { flex:1; padding:10px; border-radius:8px 8px 0 0; border:1px solid var(--line);
+    background:var(--card); color:var(--muted); font:inherit; cursor:pointer; }
+  .tabs button[aria-selected="true"] { color:var(--text); font-weight:600; border-bottom:3px solid var(--accent); }
+  fieldset { background:var(--card); border:1px solid var(--line); border-radius:10px; margin:0 0 16px; padding:14px 16px 16px; }
+  legend { font-weight:600; padding:0 6px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  label { display:block; font-size:.9rem; color:var(--muted); }
+  input:not([type=checkbox]), textarea, select { width:100%; margin-top:4px; padding:8px 10px; font:inherit;
+    color:var(--text); background:transparent; border:1px solid var(--line); border-radius:6px; }
+  select option { color:#000; }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--accent); }
+  textarea { min-height:90px; resize:vertical; }
+  #noi_dung { min-height:260px; }
+  .hint { font-size:.82rem; color:var(--muted); margin-top:4px; }
+  .full { grid-column:1/-1; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button.b { font:inherit; padding:10px 18px; border-radius:8px; cursor:pointer; border:1px solid var(--line);
+    background:var(--card); color:var(--text); }
+  button.primary { background:var(--accent); color:var(--accent-text); border-color:var(--accent); font-weight:600; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .msg { min-height:1.5em; margin-top:8px; }
+  .msg.err { color:var(--err); }
+  ul.warns { margin:10px 0 0; padding:10px 14px 10px 30px; background:var(--warn-bg); color:var(--warn);
+    border-radius:8px; font-size:.9rem; }
+  ul.warns:empty { display:none; }
+  code { background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px; }
+  .chk { display:flex; gap:8px; align-items:center; color:var(--text); font-size:.95rem; }
+  .chk input { width:auto; margin:0; }
+  progress { width:100%; height:10px; margin-top:10px; }
+  .tw { overflow-x:auto; margin-top:12px; }
+  table.kq { width:100%; border-collapse:collapse; font-size:.88rem; }
+  table.kq th, table.kq td { border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+  table.kq th { background:var(--card); }
+  .st-ok { color:#1b7a3a; font-weight:600; } .st-rs { color:var(--warn); font-weight:600; } .st-loi { color:var(--err); font-weight:600; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chuẩn hóa văn bản và slide</h1>
+  <p class="sub">Tải file thô lên, hệ thống tự nhận diện cấu trúc và dựng lại đúng thể thức. Không dùng AI, không gửi dữ liệu ra ngoài máy bạn.</p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-vb" aria-selected="true">Văn bản hành chính (NĐ 30)</button>
+    <button role="tab" id="tab-sl" aria-selected="false">Slide học thuật</button>
+    <button role="tab" id="tab-lo" aria-selected="false">Xử lý hàng loạt</button>
+  </div>
+
+  <!-- ====================== TAB VĂN BẢN ====================== -->
+  <section id="p-vb">
+    <fieldset>
+      <legend>Bước 1. Tải file Word thô lên (tuỳ chọn)</legend>
+      <label>File .docx hoặc .txt
+        <input type="file" id="file_vb" accept=".docx,.txt"></label>
+      <p class="hint">Hệ thống đọc cả văn bản gõ trong bảng, nhận diện cơ quan, số, ngày, trích yếu, kính gửi, nội dung, nơi nhận, chữ ký rồi điền vào form bên dưới. File .doc cũ: hãy Lưu thành .docx trước.</p>
+      <div class="actions">
+        <button type="button" class="b primary" id="doc_file">Đọc file và điền form</button>
+        <label class="chk"><input type="checkbox" id="tai_ngay"> Tải file chuẩn về ngay sau khi đọc</label>
+      </div>
+      <div class="msg" id="msg_imp" role="status"></div>
+      <ul class="warns" id="warns"></ul>
+    </fieldset>
+
+    <form id="f" autocomplete="off">
+      <fieldset>
+        <legend>Bước 2. Rà soát thông tin</legend>
+        <div class="grid">
+          <label>Loại văn bản
+            <select id="loai_van_ban"></select></label>
+          <label>Cơ quan chủ quản (nếu có)
+            <input id="co_quan_chu_quan" placeholder="UBND TỈNH ABC"></label>
+          <label>Cơ quan ban hành *
+            <input id="co_quan_ban_hanh" required placeholder="SỞ GIÁO DỤC VÀ ĐÀO TẠO">
+            <span class="hint">Tự chuyển thành chữ in hoa, đậm.</span></label>
+          <label>Số <input id="so" placeholder="123 (để trống nếu điền tay)"></label>
+          <label>Ký hiệu <input id="ky_hieu" placeholder="SGDĐT-VP hoặc QĐ-UBND"></label>
+          <label>Địa danh <input id="dia_danh" placeholder="Hà Nội"></label>
+          <label>Ngày ban hành * <input id="ngay" type="date" required></label>
+          <label class="full">Trích yếu <input id="trich_yeu" placeholder="Công văn: nội dung sau “V/v”. Quyết định, thông báo: “Về việc ...”"></label>
+          <label class="full">Kính gửi (mỗi nơi một dòng)
+            <textarea id="kinh_gui"></textarea></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Nội dung</legend>
+        <label>Nội dung văn bản *<textarea id="noi_dung" required></textarea></label>
+        <p class="hint">Mỗi đoạn một dòng. Đầu dòng: <code># </code> mục lớn, <code>## </code> mục nhỏ,
+          <code>- </code> gạch đầu dòng, <code>&gt; </code> dòng đậm canh giữa. “Căn cứ…” tự in nghiêng, “Điều 1.” tự in đậm.</p>
+        <p class="hint"><b>Bảng</b>: mỗi hàng một dòng <code>| ô | ô | ô |</code>; dòng <code>|---|---|---|</code> ngay sau hàng đầu = hàng đầu là tiêu đề;
+          ô ghi <code>&lt;</code> là gộp với ô bên trái, <code>^</code> là gộp với ô phía trên; xuống dòng trong ô dùng <code>&lt;br&gt;</code>; ngăn cách hai bảng bằng một dòng trống.
+          <b>Hình</b>: dòng <code>[[hinh:1]]</code> (hình được đọc từ file Word, đừng xóa dòng này nếu muốn giữ hình).</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Chữ ký và nơi nhận</legend>
+        <div class="grid">
+          <label>Quyền hạn ký (nếu có) <input id="quyen_han_ky" placeholder="KT. GIÁM ĐỐC"></label>
+          <label>Chức vụ người ký <input id="chuc_vu_ky" placeholder="PHÓ GIÁM ĐỐC"></label>
+          <label class="full">Họ tên người ký <input id="nguoi_ky" placeholder="Nguyễn Văn A"></label>
+          <label class="full">Nơi nhận (mỗi nơi một dòng)
+            <textarea id="noi_nhan"></textarea>
+            <span class="hint">Tự thêm gạch đầu dòng, dấu “;” và dấu “.” ở dòng cuối.</span></label>
+          <label class="chk full"><input type="checkbox" id="hien_so_trang_dau">
+            Hiện số trang ở cả trang 1 (NĐ 30 quy định số trang bắt đầu từ trang 2)</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Phụ lục (nằm sau chữ ký, nếu có)</legend>
+        <label>Nội dung phụ lục<textarea id="phu_luc"></textarea></label>
+        <p class="hint">Cùng cách ghi như phần nội dung. Dòng <code>[[ngat-trang]]</code> = sang trang mới (dùng giữa các biểu mẫu).
+          Phụ lục luôn bắt đầu ở trang riêng và tiếp tục đánh số trang.</p>
+        <label class="chk"><input type="checkbox" id="phu_luc_ngang"> In phụ lục trên giấy A4 nằm ngang (nên chọn khi phụ lục có bảng nhiều cột)</label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="b primary" id="go">Tạo file Word</button>
+        <button type="button" class="b" id="xoa">Xóa form</button>
+      </div>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+  </section>
+
+  <!-- ====================== TAB SLIDE ====================== -->
+  <section id="p-sl" hidden>
+    <fieldset>
+      <legend>Chuyển PowerPoint thô thành slide chuẩn</legend>
+      <div class="grid">
+        <label class="full">File .pptx *<input type="file" id="file_sl" accept=".pptx"></label>
+        <label class="full">Tên báo cáo / bài giảng (để trống = lấy từ slide đầu) <input id="s_ten_bai"></label>
+        <label>Kiểu slide <select id="s_kieu">
+          <option value="chuan" selected>Tiêu chuẩn: báo cáo, kinh doanh, ủy ban</option>
+          <option value="hoc_thuat">Học thuật: bài giảng</option></select></label>
+        <label>Chủ đề / học phần (tùy chọn) <input id="s_hoc_phan"></label>
+        <label>Người trình bày (giảng viên) <input id="s_giang_vien"></label>
+        <label>Đơn vị (hiện ở chân trang) <input id="s_don_vi"></label>
+        <label>Thời gian (năm học, tháng/năm) <input id="s_nam" placeholder="Tháng 11/2026"></label>
+      </div>
+      <p class="hint">Hệ thống dựng lại: slide mở đầu, mục lục tự động, tiêu đề thống nhất, slide kết, gạch đầu dòng đúng cấp, tự tách slide quá dài thành “(tiếp)”, đánh số slide, đưa “Tài liệu tham khảo” xuống cuối. Hình và bảng được giữ (bảng dài tự tách nhiều slide và lặp lại hàng tiêu đề, ô gộp được giữ, nhiều hình tự xếp lưới); biểu đồ được đổi thành bảng số liệu; video, SmartArt sẽ được báo để bạn chèn lại.</p>
+      <div class="actions">
+        <button type="button" class="b primary" id="go_sl">Chuyển thành slide chuẩn</button>
+      </div>
+      <div class="msg" id="msg_sl" role="status"></div>
+      <ul class="warns" id="warns_sl"></ul>
+    </fieldset>
+  </section>
+  <!-- ====================== TAB HÀNG LOẠT ====================== -->
+  <section id="p-lo" hidden>
+    <fieldset>
+      <legend>Xử lý nhiều file cùng lúc</legend>
+      <div class="grid">
+        <label class="full">Chọn nhiều file (.docx, .txt, .pptx)
+          <input type="file" id="lo_files" multiple accept=".docx,.txt,.pptx"></label>
+        <label class="full">Hoặc chọn cả một thư mục (lấy mọi file .docx, .txt, .pptx bên trong, kể cả thư mục con)
+          <input type="file" id="lo_dir" webkitdirectory multiple></label>
+        <label>Kiểu slide <select id="lo_kieu">
+          <option value="chuan" selected>Tiêu chuẩn: báo cáo, kinh doanh, ủy ban</option>
+          <option value="hoc_thuat">Học thuật: bài giảng</option></select></label>
+        <label>Chủ đề / học phần (cho slide) <input id="lo_hoc_phan"></label>
+        <label>Người trình bày (cho slide) <input id="lo_giang_vien"></label>
+        <label>Đơn vị (cho slide) <input id="lo_don_vi"></label>
+        <label>Thời gian (cho slide) <input id="lo_nam" placeholder="Tháng 11/2026"></label>
+      </div>
+      <p class="hint">Word được nhận diện và dựng lại đúng NĐ 30 hoàn toàn tự động (bảng, hình được giữ); PowerPoint được dựng lại thành slide chuẩn (kiểu chọn ở trên). File nào thiếu thông tin (cơ quan ban hành, ngày...) vẫn được xuất kèm ghi chú trong báo cáo để bạn rà soát. Tên báo cáo lấy từ chính slide đầu của từng file. File .doc/.ppt cũ cần Lưu thành .docx/.pptx trước.</p>
+      <p class="hint" id="lo_dem"></p>
+      <div class="actions">
+        <button type="button" class="b primary" id="lo_go">Bắt đầu xử lý</button>
+        <button type="button" class="b" id="lo_zip" hidden>Tải tất cả (ZIP kèm báo cáo)</button>
+      </div>
+      <progress id="lo_tien" max="1" value="0" hidden></progress>
+      <div class="msg" id="msg_lo" role="status"></div>
+      <div class="tw"><table class="kq" id="lo_kq" hidden>
+        <thead><tr><th>#</th><th>File gốc</th><th>Loại</th><th>Kết quả</th><th>Đã chuyển</th><th>Ghi chú</th></tr></thead>
+        <tbody></tbody></table></div>
+    </fieldset>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const FIELDS = ["loai_van_ban","co_quan_chu_quan","co_quan_ban_hanh","so","ky_hieu","dia_danh","ngay",
+  "trich_yeu","kinh_gui","noi_dung","quyen_han_ky","chuc_vu_ky","nguoi_ky","noi_nhan","phu_luc"];
+
+let hinhHienTai = {};   // hình đọc từ file Word, gửi kèm khi tạo file
+function setMsg(id, text, err) { const e = $(id); e.textContent = text; e.className = "msg" + (err ? " err" : ""); }
+function showWarns(id, list) { const ul = $(id); ul.innerHTML = ""; for (const w of list) { const li = document.createElement("li"); li.textContent = w; ul.appendChild(li); } }
+function homNay() { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function taiVe(blob, name) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+async function loiTuServer(res) {
+  let b = null; try { b = await res.json(); } catch (e) {}
+  if (b && Array.isArray(b.detail)) return b.detail.map((e) => `${(e.loc||[]).slice(1).join(".")}: ${e.msg}`).join("; ");
+  return (b && b.detail) || "Có lỗi xảy ra.";
+}
+
+// ----- tabs
+function chonTab(ten) {
+  for (const k of ["vb", "sl", "lo"]) {
+    $("p-" + k).hidden = k !== ten;
+    $("tab-" + k).setAttribute("aria-selected", k === ten);
+  }
+}
+$("tab-vb").onclick = () => chonTab("vb");
+$("tab-sl").onclick = () => chonTab("sl");
+$("tab-lo").onclick = () => chonTab("lo");
+
+// ----- loại văn bản
+fetch("/api/loai-van-ban").then((r) => r.json()).then((m) => {
+  for (const [k, v] of Object.entries(m)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("loai_van_ban").appendChild(o); }
+});
+$("ngay").value = homNay();
+
+// ----- đọc file Word thô
+$("doc_file").onclick = async () => {
+  const f = $("file_vb").files[0];
+  if (!f) { setMsg("msg_imp", "Hãy chọn một file .docx hoặc .txt.", true); return; }
+  $("doc_file").disabled = true; setMsg("msg_imp", "Đang đọc file..."); showWarns("warns", []);
+  try {
+    const res = await fetch("/api/import?ten=" + encodeURIComponent(f.name), { method: "POST", body: await f.arrayBuffer() });
+    if (!res.ok) throw new Error(await loiTuServer(res));
+    const { fields, canh_bao, hinh } = await res.json();
+    hinhHienTai = hinh || {};
+    for (const k of FIELDS) {
+      if (!(k in fields)) continue;
+      const v = fields[k];
+      if (k === "ngay" && !v) continue;
+      $(k).value = Array.isArray(v) ? v.join("\n") : v;
+    }
+    $("phu_luc_ngang").checked = !!fields.phu_luc_ngang;
+    showWarns("warns", canh_bao);
+    setMsg("msg_imp", "Đã đọc file. Hãy rà soát các ô bên dưới" + ($("tai_ngay").checked ? "." : ", rồi bấm “Tạo file Word”."));
+    if ($("tai_ngay").checked && $("co_quan_ban_hanh").value.trim() && $("noi_dung").value.trim()) {
+      $("f").requestSubmit();
+    } else if ($("tai_ngay").checked) {
+      setMsg("msg_imp", "Còn thiếu cơ quan ban hành hoặc nội dung nên chưa tải về được, hãy điền rồi bấm “Tạo file Word”.", true);
+    }
+  } catch (e) { setMsg("msg_imp", e.message, true); }
+  finally { $("doc_file").disabled = false; }
+};
+
+$("xoa").onclick = () => { hinhHienTai = {}; $("f").reset(); $("ngay").value = homNay(); setMsg("msg", ""); };
+
+$("f").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const data = {};
+  for (const k of FIELDS) data[k] = $(k).value;
+  data.hien_so_trang_dau = $("hien_so_trang_dau").checked;
+  data.phu_luc_ngang = $("phu_luc_ngang").checked;
+  data.hinh = hinhHienTai;
+  $("go").disabled = true; setMsg("msg", "Đang tạo file...");
+  try {
+    const res = await fetch("/api/cong-van/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await loiTuServer(res));
+    const name = "van-ban" + (data.so.trim() ? "-" + data.so.trim().replace(/[^\w\-]/g, "") : "") + ".docx";
+    taiVe(await res.blob(), name);
+    setMsg("msg", "Đã tạo " + name + ". Hãy mở bằng Word và kiểm tra lại trước khi ban hành.");
+  } catch (e) { setMsg("msg", e.message, true); }
+  finally { $("go").disabled = false; }
+});
+
+// ----- hàng loạt
+let loDS = [], loId = "";
+const DUOI_OK = /\.(docx|txt|pptx)$/i;
+function locFile(ds, dungDuongDan) {
+  const tat = [...ds], ok = tat.filter((f) => DUOI_OK.test(f.name) && !f.name.startsWith("~$"));
+  loDS = ok.map((f) => ({ f, ten: (dungDuongDan && f.webkitRelativePath) || f.name }));
+  $("lo_dem").textContent = tat.length ? `Đã chọn ${ok.length} file hợp lệ` + (tat.length > ok.length ? `, bỏ qua ${tat.length - ok.length} file khác (không phải .docx/.txt/.pptx).` : ".") : "";
+}
+$("lo_files").onchange = () => locFile($("lo_files").files, false);
+$("lo_dir").onchange = () => locFile($("lo_dir").files, true);
+function themDong(k) {
+  const tr = document.createElement("tr");
+  const nhan = { ok: ["Đạt", "st-ok"], can_ra_soat: ["Cần rà soát", "st-rs"], loi: ["Lỗi", "st-loi"] }[k.trang_thai] || [k.trang_thai, ""];
+  const cells = [k.stt, k.goc, k.loai, nhan[0], k.thong_ke || "", (k.canh_bao || []).join(" | ")];
+  cells.forEach((v, i) => { const td = document.createElement("td"); td.textContent = v; if (i === 3) td.className = nhan[1]; tr.appendChild(td); });
+  $("lo_kq").querySelector("tbody").appendChild(tr);
+}
+$("lo_go").onclick = async () => {
+  if (!loDS.length) { setMsg("msg_lo", "Hãy chọn file hoặc thư mục trước.", true); return; }
+  $("lo_go").disabled = true; $("lo_zip").hidden = true; $("lo_kq").hidden = false;
+  $("lo_kq").querySelector("tbody").innerHTML = ""; $("lo_tien").hidden = false; $("lo_tien").value = 0;
+  let dem = { ok: 0, can_ra_soat: 0, loi: 0 };
+  try {
+    const r0 = await fetch("/api/lo/tao", { method: "POST" });
+    if (!r0.ok) throw new Error(await loiTuServer(r0));
+    loId = (await r0.json()).lo;
+    for (let i = 0; i < loDS.length; i++) {
+      const { f, ten } = loDS[i];
+      setMsg("msg_lo", `Đang xử lý ${i + 1}/${loDS.length}: ${ten}`);
+      let kq;
+      try {
+        const q = new URLSearchParams({ ten, hoc_phan: $("lo_hoc_phan").value, giang_vien: $("lo_giang_vien").value,
+          don_vi: $("lo_don_vi").value, nam: $("lo_nam").value, kieu: $("lo_kieu").value });
+        const res = await fetch(`/api/lo/${loId}/them?` + q, { method: "POST", body: await f.arrayBuffer() });
+        if (!res.ok) throw new Error(await loiTuServer(res));
+        kq = await res.json();
+      } catch (e) { kq = { stt: i + 1, goc: ten, loai: "", trang_thai: "loi", thong_ke: "", canh_bao: [e.message] }; }
+      dem[kq.trang_thai] = (dem[kq.trang_thai] || 0) + 1;
+      themDong(kq);
+      $("lo_tien").value = (i + 1) / loDS.length;
+    }
+    setMsg("msg_lo", `Xong ${loDS.length} file: ${dem.ok} đạt, ${dem.can_ra_soat} cần rà soát, ${dem.loi} lỗi. Bấm “Tải tất cả” để lấy kết quả và BAO-CAO.csv. Hãy mở bằng Word/PowerPoint kiểm tra lại trước khi ban hành.`);
+    $("lo_zip").hidden = dem.ok + dem.can_ra_soat === 0;
+  } catch (e) { setMsg("msg_lo", e.message, true); }
+  finally { $("lo_go").disabled = false; }
+};
+$("lo_zip").onclick = () => {
+  const a = document.createElement("a"); a.href = `/api/lo/${loId}/zip`; a.download = "ket-qua-chuan-hoa.zip";
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+// ----- slide
+$("go_sl").onclick = async () => {
+  const f = $("file_sl").files[0];
+  if (!f) { setMsg("msg_sl", "Hãy chọn một file .pptx.", true); return; }
+  const q = new URLSearchParams({ ten: f.name, ten_bai: $("s_ten_bai").value, hoc_phan: $("s_hoc_phan").value,
+    giang_vien: $("s_giang_vien").value, don_vi: $("s_don_vi").value, nam: $("s_nam").value,
+    kieu: $("s_kieu").value });
+  $("go_sl").disabled = true; setMsg("msg_sl", "Đang chuyển slide..."); showWarns("warns_sl", []);
+  try {
+    const res = await fetch("/api/slide/chuan-hoa?" + q, { method: "POST", body: await f.arrayBuffer() });
+    if (!res.ok) throw new Error(await loiTuServer(res));
+    let w = []; try { w = JSON.parse(res.headers.get("X-Canh-Bao") || "[]"); } catch (e) {}
+    const n = res.headers.get("X-So-Slide");
+    taiVe(await res.blob(), f.name.replace(/\.pptx$/i, "") + "-chuan.pptx");
+    showWarns("warns_sl", w);
+    setMsg("msg_sl", `Đã tạo ${n} slide. Hãy mở bằng PowerPoint kiểm tra lại.`);
+  } catch (e) { setMsg("msg_sl", e.message, true); }
+  finally { $("go_sl").disabled = false; }
+};
+</script>
+</body>
+</html>

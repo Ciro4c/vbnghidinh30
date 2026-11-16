@@ -1,0 +1,86 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Chuẩn slide chuyên nghiệp dùng chung: báo cáo ủy ban/hội đồng, kinh doanh, hành chính, họp giao ban.
+# Phông không chân, nền trắng, tông xanh navy; chỉnh ở đây, không sửa code.
+name: "Slide tiêu chuẩn (báo cáo, kinh doanh, ủy ban)"
+font: "Calibri"
+
+slide:
+  width_in: 13.333        # 16:9
+  height_in: 7.5
+
+colors:
+  primary: "14315C"       # xanh navy: tiêu đề, nền slide mở đầu/kết
+  accent: "2F80C0"        # điểm nhấn: dấu đầu dòng, gạch tiêu đề
+  text: "262B33"
+  muted: "6B7480"
+  on_primary: "FFFFFF"
+  border: "D5DAE3"        # đường kẻ mảnh
+  zebra: "F2F5FA"         # dòng xen kẽ của bảng
+  panel: "1D4278"         # khối trang trí bên phải slide mở đầu/kết
+
+header:
+  top_bar: false          # không có dải màu trên cùng
+  marker: true            # khối nhấn màu bên trái tiêu đề
+  underline: "mo"         # "dai" = gạch đậm cả bề ngang | "mo" = đường kẻ mảnh | "khong"
+  underline_pt: 1
+
+title:
+  size_pt: 30
+  min_size_pt: 24
+  left_in: 0.75
+  top_in: 0.4
+  width_in: 11.9
+  height_in: 0.95
+  chars_per_line_at_32: 64
+  max_lines: 2
+
+body:
+  size_pt: 22
+  sub_size_pt: 18
+  left_in: 0.9
+  top_in: 1.75
+  width_in: 11.5
+  height_in: 4.85
+  width_with_image_in: 6.6
+  max_bullets: 6
+  max_lines: 9
+  long_item_chars: 200
+  bullet_color: "accent"
+
+table:
+  font_sizes_pt: [18, 16, 14, 12]
+  paged_font_pt: 14
+  cell_pad_in: 0.1
+  row_pad_in: 0.16
+  min_col_in: 0.8
+
+image:
+  per_slide: 4
+  gap_in: 0.2
+  right_x_in: 7.8
+  right_w_in: 4.9
+
+footer:
+  size_pt: 11
+  line: true              # đường kẻ mảnh phía trên chân trang
+
+agenda:
+  enabled: true
+  title: "Nội dung chính"
+  min_items: 3
+  max_items: 8
+
+title_slide:
+  layout: "trai"          # "trai" = canh trái, có khối trang trí | "giua" = canh giữa
+  uppercase: false
+  title_size_pt: 40
+  sub_size_pt: 20
+  default_title: "BÁO CÁO"
+  nhan:                   # nhãn đứng trước từng dòng thông tin ở slide mở đầu ("" = không có nhãn)
+    hoc_phan: ""
+    giang_vien: "Người trình bày"
+
+closing:
+  enabled: true
+  text: "Xin trân trọng cảm ơn"
+  size_pt: 40

@@ -1,0 +1,52 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+name: Kiem tra va build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - run: python scripts/tao_mau.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: file-mau
+          path: out/
+
+  build-exe:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-build.txt
+      - name: Dong goi VanBanND30.exe
+        shell: cmd
+        run: >
+          pyinstaller --noconfirm --clean --noconsole --onefile --name VanBanND30
+          --add-data "app\static;app\static" --add-data "app\profiles;app\profiles"
+          --collect-submodules uvicorn --collect-data docx --collect-data pptx
+          --version-file version_info.txt chay_app.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VanBanND30-exe
+          path: dist/VanBanND30.exe
+      - name: Dua len Releases (khi gan tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VanBanND30.exe

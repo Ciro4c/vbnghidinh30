@@ -1,0 +1,86 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Cấu hình thể thức theo Nghị định 30/2020/NĐ-CP (Phụ lục I).
+# Các thông số dưới đây nằm trong khoảng cho phép của Phụ lục; đơn vị có quy chế
+# riêng thì sao chép file này thành profile mới (vd: truong_abc.yaml) rồi chỉnh.
+name: "Nghị định 30/2020/NĐ-CP"
+font: "Times New Roman"
+
+page:
+  width_mm: 210          # A4
+  height_mm: 297
+
+# Phụ lục I: trên/dưới 20-25, trái 30-35, phải 15-20 (mm)
+margins_mm:
+  top: 20
+  bottom: 20
+  left: 30
+  right: 15
+
+# Phần nội dung (cỡ chữ 13-14)
+body:
+  size_pt: 14
+  first_line_indent_cm: 1.27
+  space_before_pt: 6
+  space_after_pt: 0
+  line_spacing: 1.15
+
+# Khối đầu văn bản: bảng 2 cột không viền (tổng = 165 mm = bề rộng vùng chữ)
+header:
+  left_width_mm: 65
+  right_width_mm: 100
+  co_quan_size_pt: 12        # tên cơ quan (12-13)
+  quoc_hieu_size_pt: 12      # quốc hiệu (12-13)
+  tieu_ngu_size_pt: 13       # tiêu ngữ (13-14)
+  co_quan_line_ratio: 0.4    # đường kẻ dưới tên cơ quan = 1/3 - 1/2 độ dài dòng chữ
+  so_size_pt: 13             # số, ký hiệu (13)
+  trich_yeu_size_pt: 12      # V/v (12-13)
+  dia_danh_size_pt: 14       # địa danh, ngày tháng (13-14)
+
+# Ngày nhỏ hơn 10 và tháng 1, 2 phải ghi thêm số 0 ở trước
+date_rules:
+  pad_day_below_10: true
+  pad_month_1_2: true
+
+# Số văn bản nhỏ hơn 10 phải ghi thêm số 0 ở trước
+so_van_ban:
+  pad_below_10: true
+
+# Tên loại (quyết định, tờ trình...) và trích yếu: chữ đậm, canh giữa, cỡ 14
+title_block:
+  ten_loai_size_pt: 14
+  trich_yeu_size_pt: 14
+  line_ratio: 0.4            # đường kẻ dưới trích yếu = 1/3 - 1/2 độ dài dòng chữ
+
+kinh_gui:
+  size_pt: 14
+  hanging_indent_cm: 3.0
+
+# Bảng dữ liệu trong nội dung (viền đơn 0,5 pt; hàng đầu in đậm, tô nền, lặp lại khi sang trang)
+table:
+  size_pt: 13
+  cell_pad_mm: 1.2
+  border_eighths_pt: 4
+  header_fill: "D9D9D9"
+  min_col_mm: 12
+  space_pt: 2              # khoảng cách trên/dưới chữ trong ô
+  phu_luc_size_pt: 11      # cỡ chữ bảng trong phụ lục (phụ lục nhiều cột, nhiều chữ; NĐ 30 không quy định riêng)
+
+# Hình trong nội dung: canh giữa, không vượt bề rộng vùng chữ
+image:
+  max_height_mm: 200
+  space_pt: 6
+
+# Khối chữ ký + nơi nhận
+signature:
+  left_width_mm: 90
+  right_width_mm: 75
+  size_pt: 14
+  blank_lines: 3             # số dòng trống chừa chỗ ký và đóng dấu
+
+noi_nhan:
+  title_size_pt: 12
+  item_size_pt: 11
+
+# Số trang: từ trang 2, canh giữa lề trên, cỡ 13-14
+page_number:
+  size_pt: 13
