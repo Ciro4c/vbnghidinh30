@@ -1,8 +1,0 @@
-{
-  "name": "vanban-nd30",
-  "image": "mcr.microsoft.com/devcontainers/python:3.12",
-  "postCreateCommand": "pip install -r requirements.txt",
-  "postAttachCommand": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
-  "forwardPorts": [8000],
-  "portsAttributes": { "8000": { "label": "vanban-nd30", "onAutoForward": "openBrowser" } }
-}
