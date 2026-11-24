@@ -22,6 +22,7 @@ from ..profile import load_profile
 from .common import tinh_do_rong_cot
 
 RE_TLTK = re.compile(r"tài liệu tham khảo|references|bibliography", re.I)
+RE_SO = re.compile(r"(\d[\d.,]*\s?(?:%|tỷ|triệu|nghìn|ngàn|lần|đồng|VND|USD|\$)?)")
 RE_CAM_ON = re.compile(r"cảm ơn|thank|hỏi\s*đáp|q\s*&\s*a|câu hỏi|thảo luận", re.I)
 
 KIEU_SLIDE = {"chuan": "slide_chuan", "hoc_thuat": "slide_hoc_thuat"}     # tên gọi ngoài giao diện -> profile
@@ -29,8 +30,13 @@ KIEU_MAC_DINH = "chuan"
 
 
 def ten_profile(kieu: str | None) -> str:
-    """Đổi tên kiểu người dùng chọn thành tên profile; không hợp lệ thì dùng kiểu mặc định."""
-    return KIEU_SLIDE.get((kieu or "").strip().lower(), KIEU_SLIDE[KIEU_MAC_DINH])
+    """Đổi tên kiểu người dùng chọn thành tên profile (bí danh cũ hoặc bất kỳ profile loại slide);
+    không hợp lệ thì dùng kiểu mặc định."""
+    k = (kieu or "").strip().lower()
+    if k in KIEU_SLIDE:
+        return KIEU_SLIDE[k]
+    from ..profile import list_profiles
+    return k if k in list_profiles("slide") else KIEU_SLIDE[KIEU_MAC_DINH]
 
 
 @dataclass
@@ -51,6 +57,7 @@ class SlideBuilder:
         self.prof, self.info = prof, info
         self.font = prof["font"]
         self.c = prof["colors"]
+        self._ap_vung()
         self.prs = Presentation()
         self.prs.slide_width = Inches(prof["slide"]["width_in"])
         self.prs.slide_height = Inches(prof["slide"]["height_in"])
@@ -58,6 +65,31 @@ class SlideBuilder:
         self.prs.core_properties.comments = ban_quyen.GHI_CHU
 
     # ---------- tiện ích ----------
+    def _ap_vung(self):
+        """Tính lại vị trí tiêu đề/nội dung/chân trang từ các tỷ lệ % (layout.use_percent)."""
+        pr = self.prof
+        ly = pr.get("layout") or {}
+        self.vung_chan = None
+        if not ly.get("use_percent"):
+            return
+        W, H = pr["slide"]["width_in"], pr["slide"]["height_in"]
+        x = round(W * ly["side_margin_pct"] / 100, 3)
+        y0 = round(H * ly["vertical_margin_pct"] / 100, 3)
+        tz = H * ly["title_zone_pct"] / 100
+        cz = H * ly["center_zone_pct"] / 100
+        t, b = pr["title"], pr["body"]
+        t["left_in"], t["width_in"], t["top_in"] = x, round(W - 2 * x, 3), y0
+        t["height_in"] = round(max(tz - y0 - 0.1, 0.6), 3)
+        b["left_in"], b["width_in"] = x, round(W - 2 * x, 3)
+        b["top_in"] = round(tz + 0.1, 3)
+        b["height_in"] = round(cz - 0.2, 3)
+        self.vung_chan = round(H * (1 - ly["footer_zone_pct"] / 100), 3)
+        if "width_with_image_in" in b:
+            b["width_with_image_in"] = round((W - 2 * x) * 0.56, 3)
+        im = pr["image"]
+        im["right_x_in"] = round(x + b["width_with_image_in"] + 0.3, 3)
+        im["right_w_in"] = round(W - x - im["right_x_in"], 3)
+
     def _style_run(self, run, size, bold=False, color=None, italic=False):
         f = run.font
         f.name, f.size, f.bold, f.italic = self.font, Pt(size), bold, italic
@@ -109,17 +141,19 @@ class SlideBuilder:
         pr, ft = self.prof, self.prof["footer"]
         W, H = pr["slide"]["width_in"], pr["slide"]["height_in"]
         text = self.info.don_vi or self.info.ten_bai
+        xl = pr["title"]["left_in"] if self.vung_chan else 0.6
+        yl = (self.vung_chan + 0.1) if self.vung_chan else H - 0.62
         if ft.get("line"):
-            self._duong_ke(slide, 0.6, H - 0.62, W - 0.6, H - 0.62, self.c.get("border", self.c["muted"]), 0.75)
+            self._duong_ke(slide, xl, yl, W - xl, yl, self.c.get("border", self.c["muted"]), 0.75)
         if text:
-            tb = slide.shapes.add_textbox(Inches(0.6), Inches(H - 0.55), Inches(9), Inches(0.35))
+            tb = slide.shapes.add_textbox(Inches(xl), Inches(yl + 0.07), Inches(9), Inches(0.35))
             tb.text_frame.word_wrap = True
             tb.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
             r = tb.text_frame.paragraphs[0].add_run()
             r.text = text
             self._style_run(r, ft["size_pt"], color=self.c["muted"])
         if so_slide:
-            tb = slide.shapes.add_textbox(Inches(W - 1.6), Inches(H - 0.55), Inches(1.0), Inches(0.35))
+            tb = slide.shapes.add_textbox(Inches(W - xl - 1.0), Inches(yl + 0.07), Inches(1.0), Inches(0.35))
             p = tb.text_frame.paragraphs[0]
             p.alignment = PP_ALIGN.RIGHT
             fld = etree.SubElement(p._p, qn("a:fld"))
@@ -288,9 +322,72 @@ class SlideBuilder:
             p.space_after = Pt(8)
             p.line_spacing = 1.05
             self._bullet(p, level, "dot" if gach else "none")
+            size = b["size_pt"] if level == 0 else b["sub_size_pt"]
+            if b.get("highlight_numbers") and self.c.get("highlight"):
+                for kt, doan in enumerate(RE_SO.split(text)):
+                    if not doan:
+                        continue
+                    r = p.add_run()
+                    r.text = doan
+                    if kt % 2 == 1:
+                        self._style_run(r, size, True, self.c["highlight"])
+                    else:
+                        self._style_run(r, size)
+            else:
+                r = p.add_run()
+                r.text = text
+                self._style_run(r, size)
+
+    def _rut_y(self, sl):
+        """long_item = notes: giữ ý chính trên slide, câu đầy đủ chuyển vào ghi chú."""
+        ck = self.prof.get("standard", {}).get("chunking", {})
+        if ck.get("long_item") != "notes":
+            return sl.items
+        mx = ck.get("keyword_words", 12)
+        moi, bo = [], []
+        for lv, tx, g in sl.items:
+            tu = tx.split()
+            if len(tu) > mx:
+                bo.append(tx)
+                tx = " ".join(tu[:mx]).rstrip(" ,;:-") + "…"
+            moi.append((lv, tx, g))
+        if bo:
+            sl.notes = (sl.notes + "\n\n" if sl.notes else "") + "Nội dung đầy đủ:\n" + "\n".join(bo)
+            self.warns.append(f"Slide “{sl.title}”: {len(bo)} ý dài đã rút thành ý chính, câu đầy đủ nằm trong ghi chú.")
+        return moi
+
+    def _la_the(self, sl) -> bool:
+        cl = self.prof.get("content_layout") or {}
+        if not cl.get("cards") or sl.images or sl.tables:
+            return False
+        it = sl.items
+        if not (cl.get("min_items", 3) <= len(it) <= 5) or any(x[0] != 0 for x in it):
+            return False
+        return all(len(x[1].split()) <= cl.get("card_max_words", 14) for x in it)
+
+    def _ve_the(self, s, items):
+        b = self.prof["body"]
+        n = len(items)
+        gap = 0.25
+        w = (b["width_in"] - gap * (n - 1)) / n
+        h = min(b["height_in"] - 0.6, 3.4)
+        y = b["top_in"] + 0.3
+        for i, (_, tx, _g) in enumerate(items):
+            x = b["left_in"] + i * (w + gap)
+            self._khoi(s, x, y, w, h, self.c.get("card", "F8F9FA"))
+            self._khoi(s, x, y, w, 0.08, self.c["accent"])
+            tb = s.shapes.add_textbox(Inches(x + 0.15), Inches(y + 0.25), Inches(w - 0.3), Inches(h - 0.4))
+            tf = tb.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
             r = p.add_run()
-            r.text = text
-            self._style_run(r, b["size_pt"] if level == 0 else b["sub_size_pt"])
+            r.text = f"{i + 1:02d}"
+            self._style_run(r, 28, True, self.c["highlight"] if self.c.get("highlight") else self.c["accent"])
+            p2 = tf.add_paragraph()
+            p2.space_before = Pt(8)
+            r2 = p2.add_run()
+            r2.text = tx
+            self._style_run(r2, max(b["sub_size_pt"], 18))
 
     def _chia_doan_dai(self, items, width_in):
         """Đoạn dài hơn số dòng tối đa của một slide thì tách theo câu (không làm mất chữ),
@@ -483,10 +580,17 @@ class SlideBuilder:
     def slide_noi_dung(self, sl: SlideIn, stt: int):
         b, im = self.prof["body"], self.prof["image"]
         anh = list(sl.images)
+        sl.items = self._rut_y(sl)
+        if self._la_the(sl):
+            s = self._tao_slide(sl.title)
+            self._ve_the(s, sl.items)
+            if sl.notes:
+                s.notes_slide.notes_text_frame.text = sl.notes
+            return
         co_chu = bool(sl.items)
         w = b["width_with_image_in"] if (co_chu and anh) else b["width_in"]
         for it in sl.items:
-            if len(it[1]) > b["long_item_chars"]:
+            if len(it[1]) > b["long_item_chars"] and self.prof.get("standard", {}).get("chunking", {}).get("long_item", "warn") != "keep":
                 self.warns.append(f"Slide “{sl.title}”: có đoạn dài {len(it[1])} ký tự, "
                                   "nên rút gọn thành ý chính.")
                 break
@@ -538,10 +642,20 @@ class SlideBuilder:
             self._style_run(r, self.prof["body"]["size_pt"])
 
 
-def dung_slide(slides: list[SlideIn], info: ThongTin, profile: str = KIEU_SLIDE[KIEU_MAC_DINH]):
-    prof = load_profile(profile)
-    b = SlideBuilder(prof, info)
+def dung_slide(slides: list[SlideIn], info: ThongTin, profile: str = KIEU_SLIDE[KIEU_MAC_DINH],
+               tuy_chinh: dict | None = None, tieu_de_moi: dict | None = None):
+    """tuy_chinh: ghi đè thông số profile (cùng cấu trúc yaml); tieu_de_moi: {số thứ tự slide (từ 1) hoặc tiêu đề cũ: tiêu đề mới}."""
+    from ..profile import ap_dung_tuy_chinh
+    prof = ap_dung_tuy_chinh(load_profile(profile), tuy_chinh)
+    mx = prof.get("standard", {}).get("chunking", {}).get("max_chunks")
+    if mx:
+        prof["body"]["max_bullets"] = mx
     items = list(slides)
+    for k, sl in enumerate(items, 1):
+        moi = (tieu_de_moi or {}).get(str(k)) or (tieu_de_moi or {}).get(sl.title)
+        if moi and moi.strip():
+            sl.title = moi.strip()
+    b = SlideBuilder(prof, info)
     ts = prof["title_slide"]
 
     # slide đầu chỉ có tiêu đề (+ tối đa 2 dòng phụ) = slide mở đầu
@@ -586,7 +700,7 @@ def dung_slide(slides: list[SlideIn], info: ThongTin, profile: str = KIEU_SLIDE[
         if ket_goc:
             b.slide_ket(ket_goc.title, [t for _, t, _ in ket_goc.items])
         else:
-            b.slide_ket()
+            b.slide_ket("", b._dong_thong_tin() if prof["closing"].get("show_contact") else None)
     buf = io.BytesIO()
     b.prs.save(buf)
     return buf.getvalue(), b.warns, len(b.prs.slides)

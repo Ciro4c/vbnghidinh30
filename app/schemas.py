@@ -26,6 +26,12 @@ TEN_LOAI = {
     "giay_gioi_thieu": "GIẤY GIỚI THIỆU",
     "de_an": "ĐỀ ÁN",
     "phuong_an": "PHƯƠNG ÁN",
+    "nghi_dinh": "NGHỊ ĐỊNH",
+    "thong_tu": "THÔNG TƯ",
+    "thong_tu_lien_tich": "THÔNG TƯ LIÊN TỊCH",
+    "cong_dien": "CÔNG ĐIỆN",
+    "thong_cao": "THÔNG CÁO",
+    "ket_luan": "KẾT LUẬN",
 }
 
 
@@ -44,7 +50,7 @@ def _tach_dong(v):
 class CongVan(BaseModel):
     loai_van_ban: str = "cong_van"                   # khóa trong TEN_LOAI
     co_quan_chu_quan: str = ""                       # vd: UBND TỈNH ABC (có thể để trống)
-    co_quan_ban_hanh: str = Field(min_length=1)      # vd: SỞ GIÁO DỤC VÀ ĐÀO TẠO
+    co_quan_ban_hanh: str = ""                       # vd: SỞ GIÁO DỤC VÀ ĐÀO TẠO (bắt buộc khi thành phần "co_quan" bật)
     so: str = ""                                     # vd: 123
     ky_hieu: str = ""                                # vd: SGDĐT-VP
     dia_danh: str = ""                               # vd: Cần Thơ
@@ -61,6 +67,15 @@ class CongVan(BaseModel):
     hien_so_trang_dau: bool = False                  # NĐ 30: không hiện số ở trang 1
     # Hình trong nội dung: {"1": {"mime","b64","w_mm","w_px","h_px"}}, nội dung tham chiếu bằng dòng [[hinh:1]]
     hinh: dict[str, dict] = Field(default_factory=dict)
+    # Bật/tắt thành phần thể thức (khóa như trong profile: quoc_hieu, tieu_ngu, co_quan, so_ky_hieu, dia_danh_ngay,
+    # ten_loai, trich_yeu, kinh_gui, chu_ky, noi_nhan, so_trang, phu_luc). Khóa không ghi thì theo mặc định của profile.
+    thanh_phan: dict[str, bool] = Field(default_factory=dict)
+    # Ghi đè thông số profile (cùng cấu trúc yaml), vd {"margins_mm": {"left": 35}, "body": {"size_pt": 13}}
+    tuy_chinh: dict = Field(default_factory=dict)
+    # Ảnh chữ ký / con dấu: {"b64": "...", "rong_mm": 38, "tach_nen": true, "do_dam": 100, "dx_mm": 0, "dy_mm": 0,
+    # "nhuom": "1D4ED8"}; con dấu dùng "duong_kinh_mm" thay "rong_mm"
+    chu_ky_anh: dict = Field(default_factory=dict)
+    con_dau_anh: dict = Field(default_factory=dict)
 
     _loai = field_validator("loai_van_ban")(_kiem_tra_loai)
     _tach = field_validator("kinh_gui", "noi_nhan", mode="before")(_tach_dong)

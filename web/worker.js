@@ -13,7 +13,7 @@ async function khoiDong(goc) {
   await py.loadPackage(["micropip", "lxml", "pillow", "pyyaml", "pydantic", "typing-extensions"]);
   await py.runPythonAsync(`
 import micropip
-await micropip.install(["python-docx", "python-pptx"])
+await micropip.install(["python-docx", "python-pptx", "pypdf"])
 `);
   baoTien("Đang nạp ứng dụng...");
   const r = await fetch(goc + "app.zip", { cache: "no-cache" });

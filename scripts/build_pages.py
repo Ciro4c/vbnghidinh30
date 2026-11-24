@@ -43,6 +43,7 @@ def main():
         '''fetch(`/api/lo/${loId}/zip`).then(async (r) => { if (!r.ok) throw new Error(await loiTuServer(r)); taiVe(await r.blob(), "ket-qua-chuan-hoa.zip"); })
     .catch((e) => setMsg("msg_lo", e.message, true));''',
     )
+    html = thay(html, 'const PDFJS_GOC = "/static/vendor/";', 'const PDFJS_GOC = new URL("vendor/", location.href).href;')
     chan = ('<footer id="chu-ky" style="text-align:center;padding:18px 12px 28px;font:13px system-ui,sans-serif;'
             f'opacity:.7">{ban_quyen.BAN_QUYEN} · <span>{ban_quyen.CHU_KY}</span></footer>')
     html = thay(html, "</body>", chan + "\n</body>")
@@ -50,6 +51,7 @@ def main():
 
     for ten in ("shim.js", "worker.js", "web_bridge.py"):
         shutil.copy(GOC / "web" / ten, DICH / ten)
+    shutil.copytree(GOC / "app" / "static" / "vendor", DICH / "vendor")
     (DICH / ".nojekyll").write_text("", encoding="utf-8")
     print("Da tao", DICH)
 

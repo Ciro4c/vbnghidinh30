@@ -1,0 +1,31 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Thể thức văn bản của Đoàn TNCS Hồ Chí Minh theo Hướng dẫn 29-HD/TWĐTN-VP ngày 29/10/2013 của Ban Bí thư Trung ương Đoàn.
+# Dựng theo mẫu văn bản của Đoàn đang dùng: bên trái “BAN CHẤP HÀNH ...”, dòng *** ; bên phải “ĐOÀN TNCS HỒ CHÍ MINH”
+# thay cho Quốc hiệu - Tiêu ngữ; số ghi “Số: 03-HD/ĐTN-BTC”.
+# LƯU Ý: lề, cỡ chữ chưa đọc được từ bản gốc nên giữ thông số kiểu văn bản Đảng. Hãy đối chiếu bản gốc và chỉnh.
+extends: hd05_dang
+name: "Đoàn TNCS Hồ Chí Minh (Hướng dẫn 29-HD/TWĐTN-VP)"
+loai: van_ban
+mo_ta: "Tiêu đề “ĐOÀN TNCS HỒ CHÍ MINH” bên phải, dòng *** dưới tên cơ quan; không có tiêu ngữ."
+
+nhan_thanh_phan:
+  quoc_hieu: "Tiêu đề “Đoàn TNCS Hồ Chí Minh”"
+  tieu_ngu: "Tiêu ngữ (không dùng trong văn bản của Đoàn)"
+
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ theo Hướng dẫn 29"
+    bat: {}
+  noi_bo_khong_quoc_hieu:
+    ten: "Bỏ tiêu đề Đoàn TNCS Hồ Chí Minh"
+    bat: {quoc_hieu: false}
+
+header:
+  quoc_hieu_text: "ĐOÀN TNCS HỒ CHÍ MINH"
+  quoc_hieu_line: false
+  co_quan_dau_sao: true
+  co_quan_dau_sao_text: "***"
+
+so_van_ban:
+  dau_hai_cham: true
+  pad_below_10: true

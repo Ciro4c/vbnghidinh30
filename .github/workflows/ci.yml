@@ -38,7 +38,7 @@ jobs:
         shell: cmd
         run: >
           pyinstaller --noconfirm --clean --noconsole --onefile --name VanBanND30
-          --add-data "app\static;app\static" --add-data "app\profiles;app\profiles"
+          --add-data "app\static;app\static" --add-data "app\profiles;app\profiles" --add-data "app\fonts;app\fonts"
           --collect-submodules uvicorn --collect-data docx --collect-data pptx
           --version-file version_info.txt chay_app.py
       - uses: actions/upload-artifact@v4

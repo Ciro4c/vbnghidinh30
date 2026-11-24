@@ -1,4 +1,4 @@
-# vanban-nd30 — Chuẩn hóa văn bản NĐ 30/2020/NĐ-CP và slide học thuật
+# vanban-nd30 — Chuẩn hóa văn bản (NĐ 30/2020 và thể thức khác), PDF và slide
 
 Web app chạy trên máy cá nhân, **không cần mạng, không tốn phí, không dùng AI**.
 
@@ -43,13 +43,17 @@ thành “(tiếp)” (kể cả một đoạn văn quá dài: tách theo câu, 
 xuống phần nội dung, giữ chỗ xuống dòng mềm (Shift+Enter) để chữ không bị dính nhau, đánh số slide, chân trang đơn vị, đưa “Tài liệu tham khảo” xuống cuối, giữ hình, bảng,
 ghi chú của diễn giả.
 
-## Xử lý hàng loạt (tab 3)
+## Xử lý hàng loạt (tab cuối)
 
-Chọn nhiều file cùng lúc, hoặc chọn cả một thư mục (lấy cả thư mục con). Hệ thống xử lý lần lượt từng file,
-file lỗi không làm dừng cả lô. Kết thúc bấm **Tải tất cả** để lấy file ZIP gồm các file đã chuẩn hóa (giữ cấu trúc
-thư mục, tên thêm `-chuan`) và `BAO-CAO.csv` (mở bằng Excel) ghi rõ file nào Đạt / Cần rà soát / Lỗi và lý do.
-Với Word, thông tin thiếu (cơ quan ban hành, ngày) được điền chỗ giữ chỗ và ghi vào báo cáo để sửa sau.
-Thông tin học phần, giảng viên, đơn vị, năm học ở tab này áp cho mọi slide; tên bài lấy từ slide đầu của từng file.
+Mỗi lô chỉ làm **một việc**, chọn ở Bước 1; các tùy chọn bên dưới đổi theo việc đã chọn:
+
+| Việc | File nhận | File ra | Tùy chọn |
+|---|---|---|---|
+| Chuẩn hóa văn bản Word | .docx, .txt | .docx | thể thức, thành phần bỏ/giữ, dọn ký tự lạ |
+| Xử lý PDF | .pdf | .pdf | dấu trang (giữ gốc / tự thêm theo thể thức), watermark chữ và hình, lưu dạng ảnh |
+| Chuyển PowerPoint | .pptx | .pptx | kiểu slide (mục đích), chủ đề, người trình bày, đơn vị |
+
+File không đúng loại của việc đã chọn được **bỏ qua** (ghi “Bỏ qua” trong báo cáo, không tính là lỗi). Một file lỗi không làm dừng cả lô. Kết quả gom thành ZIP kèm `BAO-CAO.csv`. Chữ ký/mộc trong PDF đặt vị trí riêng từng văn bản nên không có trong chế độ lô.
 
 ## Bảng và hình
 
@@ -141,6 +145,34 @@ vanban-nd30/
 - Bề rộng đường kẻ tính theo font Times New Roman trên máy; không có font này thì ước lượng, có thể lệch vài mm.
 - **Luôn mở file bằng Word/PowerPoint kiểm tra lại trước khi ban hành.** Đơn vị có quy chế riêng thì
   tạo profile mới trong `app/profiles/`.
+
+## Tính năng nâng cấp (phiên bản này)
+
+**Thể thức tùy chọn.** Chọn thể thức ở đầu form (mặc định NĐ 30/2020; kèm: Đảng 05-HD/VPTW, Đoàn TNCS HCM 29-HD/TWĐTN-VP, Công đoàn QĐ 933/QĐ-TLĐ, Quân đội TT 92/2012/TT-BQP). Mỗi thành phần (quốc hiệu, tiêu ngữ, cơ quan, số ký hiệu, địa danh ngày, tên loại, trích yếu, kính gửi, chữ ký, nơi nhận, số trang, phụ lục) có ô chọn; có mẫu nhanh như “bỏ quốc hiệu và tiêu ngữ”. Thông số chi tiết (lề, cỡ chữ...) ghi đè bằng JSON, được kiểm tra khoảng hợp lệ. Cấu hình lưu/nạp ra file JSON. Thể thức mới: thêm một file vào `app/profiles/` (có thể `extends: nd30` rồi chỉ ghi phần khác). **Lưu ý:** các thể thức ngoài NĐ 30 được dựng từ bản tóm tắt hoặc từ mẫu văn bản thực tế (Đoàn: lề và cỡ chữ chưa đọc được từ bản gốc; Công đoàn: chưa nạp Phụ lục 1 nên dùng thông số NĐ 30; Quân đội: số trang đặt giữa lề trên thay vì góc phải chân trang, chưa kiểm tra văn bản còn hiệu lực), cần đối chiếu bản gốc trước khi dùng chính thức.
+
+**Dò ký tự lạ do AI.** Phát hiện ký tự vô hình (zero-width, điều khiển chiều chữ), khoảng trắng lạ, ký hiệu Markdown (`**`, `#`, bảng `|---|`), mã trích dẫn chatbot (`[oaicite]`, `turn0search0`, `【…†source】`), emoji, chữ giả dạng (homoglyph), lỗi mã hóa tiếng Việt, NFD/NFC, ô giữ chỗ chưa điền, câu dẫn của chatbot. Nút “Dò ký tự lạ” trong ô nội dung, tùy chọn tự dọn khi đọc file Word/TXT/PDF, và mục “Ký tự lạ” trong tab PDF. Mục nào không tự sửa an toàn được thì chỉ báo.
+
+**Chữ ký và con dấu.** Tải ảnh chữ ký/mộc (xóa nền trắng, chỉnh độ đậm, nhuộm màu mực). Trong Word: chữ ký nằm trên họ tên, con dấu là ảnh nổi chồm khoảng 1/3 lên chữ ký về bên trái. Trong PDF: chọn trang, vị trí theo %, kích thước mm. Đây là ảnh hình thức, **không** thay cho chữ ký số có giá trị pháp lý.
+
+**Tab PDF.** Phân tích (lớp chữ, khổ giấy, kiểm tra thành phần thể thức theo chữ, dấu trang hiện có và gợi ý), sửa danh sách dấu trang theo thể thức, watermark chữ và hình (độ đậm/mờ 3–100%, giữa trang/lát đều/đặt vị trí, chọn trang), chèn chữ ký/mộc, và lưu dạng ảnh (phủ phẳng: gộp mọi lớp vào ảnh JPEG từng trang, chọn dpi, chất lượng, đen trắng). Trang được vẽ bằng pdf.js (đã kèm trong `app/static/vendor/`, giấy phép Apache-2.0) ngay trong trình duyệt. Khi lưu dạng ảnh **văn bản không còn chọn/tìm kiếm được**, dung lượng thường tăng.
+
+**Slide đa mục đích.** Kiểu slide chọn theo mục đích: Chuẩn Action Title, Báo cáo, Thuyết trình, Bán hàng/đề xuất (và hai kiểu cũ). Các tiêu chuẩn bạn nêu được đưa thành thông số trong `app/profiles/slide_action.yaml`, **không khóa cứng** (đổi trong yaml hoặc từng lần ở “Tùy biến nâng cao”):
+
+| Tiêu chuẩn | Cách xử lý |
+|---|---|
+| Action Title (câu kết luận, 28–36pt đậm, trái, vùng 15–20% trên) | Dựng: cỡ chữ, vùng, canh trái. Kiểm tra: gợi ý khi tiêu đề là nhãn chủ đề; bạn sửa tiêu đề ngay trong giao diện |
+| Chunking (3–5 ý, 5–7 từ/dòng) | Dựng: tự tách slide khi vượt số ý; tùy chọn rút ý dài thành ý chính + câu đầy đủ vào ghi chú. Kiểm tra: báo ý dài |
+| WCAG AA/AAA, đơn sắc | Kiểm tra từng cặp màu (tỷ lệ tương phản và khi in đen trắng); màu vi phạm được báo, không tự đổi |
+| 60-30-10 | Dựng: nền/chủ đạo/điểm nhấn/nhấn từ khóa là thông số màu; số liệu (%, tỷ, triệu...) tô màu nhấn |
+| Gestalt, 3 vùng, lề 5–8% | Dựng: vùng tiêu đề/trọng tâm/chân trang tính theo %; kiểm tra khoảng tham khảo |
+| Chữ không chân, 18–24pt, chân trang 12–14pt | Dựng theo thông số; kiểm tra khoảng tham khảo |
+| Bố cục thẻ cho 3–5 ý ngắn | Dựng tự động (tắt được) |
+| Hiệu ứng xuất hiện dần, làm mờ 30% | **Chưa làm**: chưa có cách kiểm tra hiệu ứng trong PowerPoint thật; thông số `animation` trong yaml hiện chưa tác dụng |
+| Biểu đồ Data-Ink, ảnh minh chứng/APA, hướng nhìn, quy tắc 1/3, ghép ảnh-chữ | **Không tự động hóa được** (cần nhìn nội dung); chưa có kiểm tra |
+
+**API chung.** Mọi chức năng đi qua `app/api_core.py` (FastAPI và bản trình duyệt dùng chung). Thêm các endpoint: `/api/thong-tin`, `/api/profile/<id>`, `/api/ky-tu-la`, `/api/pdf/phan-tich`, `/api/pdf/xu-ly`, `/api/slide/phan-tich`; gói nhiều tệp dùng khung `VBN1` (`app/khung.py`).
+
+**Chưa kiểm chứng.** Bản GitHub Pages (Pyodide) đã được thêm thư viện `pypdf` và vẽ chữ bằng Pillow nhưng **chưa chạy thử** trong Pyodide thật; bản máy cá nhân (FastAPI/.exe) đã chạy thử đầy đủ trên trình duyệt. Bản Pages có thể cần chỉnh nếu Pillow ở Pyodide thiếu freetype.
 
 ## Bản quyền
 

@@ -1,6 +1,8 @@
 # Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
 # Chuẩn slide học thuật (bài giảng). Chỉnh ở đây, không sửa code.
 name: "Slide học thuật"
+loai: slide
+muc_dich: "giao_duc"
 font: "Times New Roman"
 
 slide:

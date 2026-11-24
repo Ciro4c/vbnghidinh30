@@ -38,6 +38,7 @@ echo [5/5] Dong goi ^(2-10 phut, cua so se in nhieu dong INFO, cu de yen^)...
 pyinstaller --noconfirm --clean --noconsole %MODE% --name VanBanND30 ^
   --add-data "app\static;app\static" ^
   --add-data "app\profiles;app\profiles" ^
+  --add-data "app\fonts;app\fonts" ^
   --collect-submodules uvicorn ^
   --collect-data docx --collect-data pptx ^
   --version-file version_info.txt ^

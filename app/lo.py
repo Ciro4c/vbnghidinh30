@@ -27,7 +27,14 @@ HAN_GIU_GIAY = 6 * 3600
 _KHOA = threading.Lock()
 _RE_LO = re.compile(r"[0-9a-f]{12}")
 CHO_GIU_CO_QUAN = "[CƠ QUAN BAN HÀNH]"
-NHAN_LOAI = {"van_ban": "Văn bản", "slide": "Slide"}
+NHAN_LOAI = {"van_ban": "Word", "slide": "Slide", "pdf": "PDF"}
+# Chế độ của lô -> các đuôi file được xử lý. Chế độ không khớp thì file bị bỏ qua (không coi là lỗi).
+CHE_DO = {"van_ban": (".docx", ".txt"), "pdf": (".pdf",), "slide": (".pptx",)}
+TEN_CHE_DO = {"van_ban": "Word (.docx, .txt)", "pdf": "PDF (.pdf)", "slide": "PowerPoint (.pptx)"}
+
+
+class _BoQua(Exception):
+    pass
 
 
 # ----------------------------------------------------------------- thư mục lô
@@ -97,9 +104,24 @@ def _ten_ra(thu_muc_tep: Path, rel: str, duoi_moi: str) -> str:
 
 
 # ------------------------------------------------------------- chuyển từng loại
-def tu_dong_van_ban(data: bytes, duoi: str) -> tuple[bytes, list[str], str]:
+def _json_tt(tt: dict, khoa: str, mac_dinh=None):
+    v = (tt or {}).get(khoa)
+    if v in (None, ""):
+        return mac_dinh
+    if not isinstance(v, str):
+        return v
+    try:
+        return json.loads(v)
+    except ValueError:
+        raise ValueError(f"Tham số “{khoa}” không phải JSON hợp lệ.")
+
+
+def tu_dong_van_ban(data: bytes, duoi: str, tt: dict | str | None = None) -> tuple[bytes, list[str], str]:
+    tt = {"profile_van_ban": tt} if isinstance(tt, str) else (tt or {})
+    profile = tt.get("profile_van_ban", "")
     from .importers.docx_reader import doc_docx_ex, doc_txt
     from .importers.phan_tich import phan_tich
+    from .profile import DEFAULT_PROFILE, list_profiles
     from .renderers.cong_van import cong_van_to_bytes, parse_noi_dung
     from .schemas import CongVan
 
@@ -110,8 +132,28 @@ def tu_dong_van_ban(data: bytes, duoi: str) -> tuple[bytes, list[str], str]:
         lines, w0, hinh = doc_docx_ex(data)
     if not lines:
         raise ValueError("File không có nội dung văn bản.")
+    from . import ky_tu_la
+    la = []
+    if duoi == ".docx":
+        from .api_core import doc_tho_docx
+        la = ky_tu_la.quet(doc_tho_docx(data))
+    da_don: dict = {}
+    if str(tt.get("lam_sach", "")) in ("1", "true"):
+        moi = []
+        for ln in lines:
+            if ln.kind == "text":
+                t, tk = ky_tu_la.lam_sach_dong(ln.text, None)
+                for k2, v2 in tk.items():
+                    da_don[k2] = da_don.get(k2, 0) + v2
+                if not t.strip():
+                    continue
+                ln.text = t
+            moi.append(ln)
+        lines = moi
     f, w1 = phan_tich(lines)
-    canh_bao = list(w0) + list(w1)
+    canh_bao = list(w0) + list(w1) + ky_tu_la.tom_tat(la, da_don)
+    f["thanh_phan"] = _json_tt(tt, "thanh_phan", {}) or {}
+    f["tuy_chinh"] = _json_tt(tt, "tuy_chinh_van_ban", {}) or {}
     if not f["noi_dung"].strip():
         raise ValueError("Không tách được phần nội dung văn bản.")
     if not f["co_quan_ban_hanh"].strip():
@@ -121,7 +163,7 @@ def tu_dong_van_ban(data: bytes, duoi: str) -> tuple[bytes, list[str], str]:
         f["ngay"] = date.today().isoformat()
         canh_bao.append("Không đọc được ngày ban hành: đã dùng ngày hôm nay, hãy sửa trong Word.")
     f["hinh"] = hinh
-    out = cong_van_to_bytes(CongVan(**f))
+    out = cong_van_to_bytes(CongVan(**f), profile if profile in list_profiles("van_ban") else DEFAULT_PROFILE)
     toan_van = f["noi_dung"] + "\n" + f.get("phu_luc", "")        # đếm cả phụ lục
     khoi = parse_noi_dung(toan_van)
     n_bang = sum(1 for k, _ in khoi if k in ("bang", "bang_kv"))
@@ -137,24 +179,52 @@ def tu_dong_slide(data: bytes, tt: dict) -> tuple[bytes, list[str], str]:
     slides, w0 = doc_pptx(data)
     if not slides:
         raise ValueError("File không có slide nào có nội dung.")
+    import json as _json
+    try:
+        tc = _json.loads(tt["tuy_chinh_slide"]) if tt.get("tuy_chinh_slide") else None
+    except ValueError:
+        raise ValueError("Tham số tuỳ chỉnh slide không hợp lệ.")
     out, w1, n = dung_slide(slides, ThongTin("", tt.get("hoc_phan", "").strip(), tt.get("giang_vien", "").strip(),
                                              tt.get("don_vi", "").strip(), tt.get("nam", "").strip()),
-                               profile=ten_profile(tt.get("kieu")))
+                               profile=ten_profile(tt.get("kieu")), tuy_chinh=tc)
     w1 = [w for w in w1 if not w.startswith("Chưa nhập đủ")]   # nhắc lặp lại cho từng file thì thừa
     return out, list(w0) + w1, f"{n} slide"
 
 
-def xu_ly_tep(lo: str, ten: str, data: bytes, tt: dict | None = None) -> dict:
-    """Xử lý một file của lô; luôn trả về bản ghi kết quả (kể cả khi lỗi)."""
+def tu_dong_pdf(data: bytes, tt: dict, tep_phu: dict | None) -> tuple[bytes, list[str], str]:
+    """PDF: dấu trang, watermark, chữ ký/mộc, lưu dạng ảnh (trang đã vẽ sẵn gửi kèm dạng `trang:N`)."""
+    from . import pdf_tools
+    from .profile import DEFAULT_PROFILE
+    o = _json_tt(tt, "tuy_chon_pdf", {}) or {}
+    out, canh, info = pdf_tools.xu_ly_pdf(data, o, dict(tep_phu or {}), tt.get("profile_van_ban") or DEFAULT_PROFILE)
+    n = info.get("so_trang") if isinstance(info, dict) else None
+    return out, list(canh), (f"{n} trang" if n else "")
+
+
+def xu_ly_tep(lo: str, ten: str, data: bytes, tt: dict | None = None, tep_phu: dict | None = None) -> dict:
+    """Xử lý một file của lô; luôn trả về bản ghi kết quả (kể cả khi lỗi).
+    tt["che_do"] ("van_ban" | "pdf" | "slide") quyết định lô này làm gì; file khác loại bị bỏ qua."""
     d = _thu_muc(lo)
     rel = sach_duong_dan(ten)
     duoi = PurePosixPath(rel).suffix.lower()
+    tt = tt or {}
     kq = {"goc": rel, "loai": "", "trang_thai": "loi", "ra": "", "canh_bao": [], "thong_ke": ""}
+    che_do = tt.get("che_do") or ""
     try:
+        if che_do and che_do not in CHE_DO:
+            raise ValueError("Chế độ xử lý không hợp lệ.")
+        if che_do and duoi not in CHE_DO[che_do] and duoi not in (".doc", ".ppt"):
+            kq.update(trang_thai="bo_qua", loai=duoi.lstrip(".").upper() or "?",
+                      canh_bao=[f"Bỏ qua: lô này đang ở chế độ {TEN_CHE_DO[che_do]}."])
+            raise _BoQua()
         if duoi in (".docx", ".txt"):
             kq["loai"] = NHAN_LOAI["van_ban"]
-            out, cb, tk = tu_dong_van_ban(data, duoi)
+            out, cb, tk = tu_dong_van_ban(data, duoi, tt)
             duoi_ra = ".docx"
+        elif duoi == ".pdf":
+            kq["loai"] = NHAN_LOAI["pdf"]
+            out, cb, tk = tu_dong_pdf(data, tt, tep_phu)
+            duoi_ra = ".pdf"
         elif duoi == ".pptx":
             kq["loai"] = NHAN_LOAI["slide"]
             out, cb, tk = tu_dong_slide(data, tt or {})
@@ -163,13 +233,15 @@ def xu_ly_tep(lo: str, ten: str, data: bytes, tt: dict | None = None) -> dict:
             raise ValueError("File .doc/.ppt cũ chưa đọc được: hãy mở bằng Word/PowerPoint, Lưu thành "
                              ".docx/.pptx rồi thêm lại.")
         else:
-            raise ValueError("Định dạng chưa hỗ trợ (chỉ nhận .docx, .txt, .pptx).")
+            raise ValueError("Định dạng chưa hỗ trợ (chỉ nhận .docx, .txt, .pdf, .pptx).")
         with _KHOA:
             ra = _ten_ra(d / "tep", rel, duoi_ra)
             dich = d / "tep" / ra
             dich.parent.mkdir(parents=True, exist_ok=True)
             dich.write_bytes(out)
         kq.update(ra=ra, canh_bao=cb, thong_ke=tk, trang_thai="can_ra_soat" if cb else "ok")
+    except _BoQua:
+        pass
     except (ValueError, FileNotFoundError) as e:
         kq["canh_bao"] = [str(e)]
     except Exception:
@@ -183,7 +255,7 @@ def xu_ly_tep(lo: str, ten: str, data: bytes, tt: dict | None = None) -> dict:
 
 
 # ------------------------------------------------------------- báo cáo + ZIP
-_TEN_TRANG_THAI = {"ok": "Đạt", "can_ra_soat": "Cần rà soát", "loi": "Lỗi"}
+_TEN_TRANG_THAI = {"ok": "Đạt", "can_ra_soat": "Cần rà soát", "loi": "Lỗi", "bo_qua": "Bỏ qua"}
 
 
 def bao_cao_csv(ds: list[dict]) -> bytes:

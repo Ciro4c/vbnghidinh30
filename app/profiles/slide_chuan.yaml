@@ -2,6 +2,8 @@
 # Chuẩn slide chuyên nghiệp dùng chung: báo cáo ủy ban/hội đồng, kinh doanh, hành chính, họp giao ban.
 # Phông không chân, nền trắng, tông xanh navy; chỉnh ở đây, không sửa code.
 name: "Slide tiêu chuẩn (báo cáo, kinh doanh, ủy ban)"
+loai: slide
+muc_dich: "bao_cao"
 font: "Calibri"
 
 slide:
