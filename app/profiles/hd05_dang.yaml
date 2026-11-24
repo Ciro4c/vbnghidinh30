@@ -1,0 +1,75 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Thể thức văn bản của Đảng theo Hướng dẫn số 05-HD/VPTW ngày 27/5/2026 của Văn phòng Trung ương Đảng
+# (thay thế Hướng dẫn 36-HD/VPTW năm 2018).
+# LƯU Ý: các thông số dưới đây được nạp từ bản tóm tắt Phụ lục 2 và Phần IV của Hướng dẫn. Hãy đối chiếu với
+# bản gốc trước khi ban hành, nhất là cỡ chữ từng thành phần; chỗ nào khác thì sửa trong giao diện (Tùy chỉnh
+# nâng cao) hoặc sửa file này.
+extends: nd30
+name: "Văn bản của Đảng (Hướng dẫn 05-HD/VPTW)"
+loai: van_ban
+mo_ta: "Tiêu đề “ĐẢNG CỘNG SẢN VIỆT NAM” thay cho quốc hiệu - tiêu ngữ; số ghi “Số 12-QĐ/TW” (không có dấu hai chấm); lề trên/dưới 20, trái 30, phải 15 mm."
+
+thanh_phan:
+  quoc_hieu: true          # ở đây là tiêu đề ĐẢNG CỘNG SẢN VIỆT NAM
+  tieu_ngu: false          # văn bản của Đảng không có tiêu ngữ
+
+nhan_thanh_phan:
+  quoc_hieu: "Tiêu đề “Đảng Cộng sản Việt Nam”"
+  tieu_ngu: "Tiêu ngữ (không dùng trong văn bản của Đảng)"
+
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ theo Hướng dẫn 05"
+    bat: {}
+  noi_bo_khong_quoc_hieu:
+    ten: "Bỏ tiêu đề Đảng Cộng sản Việt Nam"
+    bat: {quoc_hieu: false}
+
+font: "Times New Roman"
+
+margins_mm: {top: 20, bottom: 20, left: 30, right: 15}
+
+body:
+  size_pt: 14              # 14-15
+  first_line_indent_cm: 1.0
+  space_before_pt: 6
+  space_after_pt: 0
+  line_exact_pt: 20        # giãn dòng 18-22 pt, kiểu Exactly
+
+header:
+  quoc_hieu_text: "ĐẢNG CỘNG SẢN VIỆT NAM"
+  quoc_hieu_line: true     # đường kẻ ngang nét liền dài bằng độ dài tiêu đề
+  co_quan_dau_sao: true    # dấu * dưới tên cơ quan ban hành
+  co_quan_size_pt: 14
+  quoc_hieu_size_pt: 15
+  so_size_pt: 14
+  trich_yeu_size_pt: 12
+  dia_danh_size_pt: 14
+  left_width_mm: 70
+  right_width_mm: 95
+
+so_van_ban:
+  dau_hai_cham: false
+  pad_below_10: false
+
+title_block:
+  ten_loai_size_pt: 16
+  trich_yeu_size_pt: 15
+  gach_noi: "-----"        # 05 dấu gạch nối dưới trích yếu
+
+kinh_gui:
+  size_pt: 14
+
+noi_nhan:
+  title_size_pt: 14
+  title_bold: false
+  title_italic: false
+  title_underline: true
+  item_size_pt: 12
+
+signature:
+  size_pt: 14
+  chuc_vu_bold: true
+
+page_number:
+  size_pt: 14

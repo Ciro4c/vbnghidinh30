@@ -1,0 +1,10 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Thể thức văn bản của tổ chức Công đoàn Việt Nam theo Quyết định 933/QĐ-TLĐ ngày 14/5/2024 của Tổng Liên đoàn
+# Lao động Việt Nam (thể loại, thẩm quyền, thể thức và kỹ thuật trình bày văn bản).
+# LƯU Ý: văn bản Công đoàn vẫn dùng Quốc hiệu - Tiêu ngữ, tên cơ quan ban hành và cơ quan chủ quản trực tiếp, nên cấu trúc
+# giống NĐ 30. Phụ lục 1 của Quyết định (cỡ chữ, lề chi tiết) chưa nạp được, đang dùng thông số NĐ 30: hãy đối chiếu
+# bản gốc và chỉnh ở đây hoặc trong “Tùy chỉnh nâng cao”.
+extends: nd30
+name: "Công đoàn (Quyết định 933/QĐ-TLĐ)"
+loai: van_ban
+mo_ta: "Cấu trúc như NĐ 30 (Quốc hiệu - Tiêu ngữ, cơ quan chủ quản và cơ quan ban hành, số ký hiệu dạng 05/QĐ-TLĐ). Thông số kỹ thuật chưa đối chiếu Phụ lục 1."

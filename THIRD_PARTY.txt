@@ -1,0 +1,5 @@
+Bản quyền © Thevancorp-1801808400 cho mã nguồn dự án.
+
+Thành phần bên thứ ba kèm theo:
+- pdf.js (Mozilla) trong app/static/vendor/: Apache License 2.0, xem LICENSE-pdfjs.txt.
+- Phông Liberation Sans/Serif trong app/fonts/: SIL Open Font License 1.1, xem app/fonts/LICENSE-Liberation.txt.

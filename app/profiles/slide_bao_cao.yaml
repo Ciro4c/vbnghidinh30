@@ -1,0 +1,5 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+extends: slide_action
+name: "Báo cáo (ủy ban, hội đồng, họp giao ban)"
+muc_dich: "bao_cao"
+mo_ta: "Có mục lục, slide kết “Xin trân trọng cảm ơn”, tiêu đề là câu kết luận."

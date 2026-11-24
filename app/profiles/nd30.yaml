@@ -1,0 +1,165 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Cấu hình thể thức theo Nghị định 30/2020/NĐ-CP (Phụ lục I).
+# Các thông số dưới đây nằm trong khoảng cho phép của Phụ lục; đơn vị có quy chế
+# riêng thì sao chép file này thành profile mới (vd: truong_abc.yaml) rồi chỉnh.
+name: "Nghị định 30/2020/NĐ-CP (văn bản hành chính)"
+loai: van_ban
+mo_ta: "Thể thức và kỹ thuật trình bày văn bản hành chính theo Phụ lục I, Nghị định 30/2020/NĐ-CP. Mọi thành phần có thể bật/tắt ở mục “Thành phần thể thức”."
+font: "Times New Roman"
+
+# Thành phần thể thức nào được in ra. Bỏ chọn một thành phần = không in thành phần đó.
+# (Nội dung văn bản luôn có.) Người dùng đổi từng lần trong giao diện, hoặc đổi mặc định ở đây.
+thanh_phan:
+  quoc_hieu: true          # CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+  tieu_ngu: true           # Độc lập - Tự do - Hạnh phúc
+  co_quan: true            # tên cơ quan chủ quản + cơ quan ban hành
+  so_ky_hieu: true         # Số: .../...
+  dia_danh_ngay: true      # Hà Nội, ngày ... tháng ... năm ...
+  ten_loai: true           # tên loại (QUYẾT ĐỊNH, TỜ TRÌNH...)
+  trich_yeu: true          # V/v ... (công văn) hoặc trích yếu dưới tên loại
+  kinh_gui: true
+  chu_ky: true             # quyền hạn ký, chức vụ, họ tên (và ảnh chữ ký, mộc nếu có)
+  noi_nhan: true
+  so_trang: true
+  phu_luc: true
+
+# Tên hiển thị trong giao diện (thứ tự hiển thị)
+nhan_thanh_phan:
+  quoc_hieu: "Quốc hiệu"
+  tieu_ngu: "Tiêu ngữ"
+  co_quan: "Tên cơ quan, tổ chức"
+  so_ky_hieu: "Số, ký hiệu"
+  dia_danh_ngay: "Địa danh, ngày tháng năm"
+  ten_loai: "Tên loại văn bản"
+  trich_yeu: "Trích yếu (V/v)"
+  kinh_gui: "Kính gửi"
+  chu_ky: "Chữ ký (quyền hạn, chức vụ, họ tên)"
+  noi_nhan: "Nơi nhận"
+  so_trang: "Số trang"
+  phu_luc: "Phụ lục"
+
+# Mẫu chọn nhanh: ghi những thành phần khác mặc định
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ theo thể thức"
+    bat: {}
+  noi_bo_khong_quoc_hieu:
+    ten: "Nội bộ: bỏ quốc hiệu và tiêu ngữ"
+    bat: {quoc_hieu: false, tieu_ngu: false}
+  khong_dau_van_ban:
+    ten: "Chỉ nội dung và chữ ký (không đầu văn bản)"
+    bat: {quoc_hieu: false, tieu_ngu: false, co_quan: false, so_ky_hieu: false, dia_danh_ngay: false,
+          kinh_gui: false, noi_nhan: false}
+  chi_noi_dung:
+    ten: "Chỉ nội dung"
+    bat: {quoc_hieu: false, tieu_ngu: false, co_quan: false, so_ky_hieu: false, dia_danh_ngay: false,
+          ten_loai: false, trich_yeu: false, kinh_gui: false, chu_ky: false, noi_nhan: false, so_trang: false}
+
+page:
+  width_mm: 210          # A4
+  height_mm: 297
+
+# Phụ lục I: trên/dưới 20-25, trái 30-35, phải 15-20 (mm)
+margins_mm:
+  top: 20
+  bottom: 20
+  left: 30
+  right: 15
+
+# Phần nội dung (cỡ chữ 13-14)
+body:
+  size_pt: 14
+  first_line_indent_cm: 1.27
+  space_before_pt: 6
+  space_after_pt: 0
+  line_spacing: 1.15
+  line_exact_pt: 0           # > 0: giãn dòng cố định (Exactly) tính bằng pt, thay cho line_spacing
+
+# Khối đầu văn bản: bảng 2 cột không viền (tổng = 165 mm = bề rộng vùng chữ)
+header:
+  quoc_hieu_text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"
+  tieu_ngu_text: "Độc lập - Tự do - Hạnh phúc"
+  quoc_hieu_line: false      # kẻ đường dưới quốc hiệu (văn bản của Đảng); tiêu ngữ luôn có đường kẻ
+  co_quan_dau_sao: false     # dấu * dưới tên cơ quan ban hành (văn bản của Đảng)
+  left_width_mm: 65
+  right_width_mm: 100
+  co_quan_size_pt: 12        # tên cơ quan (12-13)
+  quoc_hieu_size_pt: 12      # quốc hiệu (12-13)
+  tieu_ngu_size_pt: 13       # tiêu ngữ (13-14)
+  co_quan_line_ratio: 0.4    # đường kẻ dưới tên cơ quan = 1/3 - 1/2 độ dài dòng chữ
+  so_size_pt: 13             # số, ký hiệu (13)
+  trich_yeu_size_pt: 12      # V/v (12-13)
+  dia_danh_size_pt: 14       # địa danh, ngày tháng (13-14)
+
+# Ngày nhỏ hơn 10 và tháng 1, 2 phải ghi thêm số 0 ở trước
+date_rules:
+  pad_day_below_10: true
+  pad_month_1_2: true
+
+# Số văn bản nhỏ hơn 10 phải ghi thêm số 0 ở trước
+so_van_ban:
+  pad_below_10: true
+  dau_hai_cham: true         # "Số: 12/..." (văn bản của Đảng: "Số 12-...")
+
+# Tên loại (quyết định, tờ trình...) và trích yếu: chữ đậm, canh giữa, cỡ 14
+title_block:
+  ten_loai_size_pt: 14
+  trich_yeu_size_pt: 14
+  line_ratio: 0.4            # đường kẻ dưới trích yếu = 1/3 - 1/2 độ dài dòng chữ
+  gach_noi: ""               # nếu ghi (vd "-----") thì thay đường kẻ bằng dãy gạch nối này
+
+kinh_gui:
+  size_pt: 14
+  hanging_indent_cm: 3.0
+
+# Bảng dữ liệu trong nội dung (viền đơn 0,5 pt; hàng đầu in đậm, tô nền, lặp lại khi sang trang)
+table:
+  size_pt: 13
+  cell_pad_mm: 1.2
+  border_eighths_pt: 4
+  header_fill: "D9D9D9"
+  min_col_mm: 12
+  space_pt: 2              # khoảng cách trên/dưới chữ trong ô
+  phu_luc_size_pt: 11      # cỡ chữ bảng trong phụ lục (phụ lục nhiều cột, nhiều chữ; NĐ 30 không quy định riêng)
+
+# Hình trong nội dung: canh giữa, không vượt bề rộng vùng chữ
+image:
+  max_height_mm: 200
+  space_pt: 6
+
+# Khối chữ ký + nơi nhận
+signature:
+  left_width_mm: 90
+  right_width_mm: 75
+  size_pt: 14
+  blank_lines: 3             # số dòng trống chừa chỗ ký và đóng dấu
+  chuc_vu_bold: true
+  # Lồng ảnh chữ ký và mộc (chỉ dùng khi người dùng nạp ảnh)
+  chu_ky_rong_mm: 38         # bề rộng ảnh chữ ký
+  chu_ky_cao_toi_da_mm: 24   # chiều cao tối đa ảnh chữ ký
+  con_dau_duong_kinh_mm: 40  # mộc tròn: đường kính 38-40 mm
+  con_dau_trum_chu_ky: 0.33  # mộc trùm lên khoảng 1/3 chữ ký về phía bên trái (NĐ 30)
+
+noi_nhan:
+  title_size_pt: 12
+  title_bold: true
+  title_italic: true
+  title_underline: false
+  item_size_pt: 11
+
+# Số trang: từ trang 2, canh giữa lề trên, cỡ 13-14
+page_number:
+  size_pt: 13
+
+# Dấu trang (bookmark) khi áp dụng cho PDF: dò các dòng sau trong văn bản để gắn dấu trang
+# cap: 1 = cấp cao nhất. Mỗi mẫu là biểu thức chính quy áp lên từng dòng đã bỏ khoảng trắng đầu/cuối.
+bookmark:
+  mau:
+    - {cap: 1, ten: "Đầu văn bản (quốc hiệu, tiêu ngữ)", mau: "^(CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM|ĐẢNG CỘNG SẢN VIỆT NAM)$"}
+    - {cap: 1, ten: "", mau: "^(QUYẾT ĐỊNH|NGHỊ ĐỊNH|THÔNG TƯ|TỜ TRÌNH|THÔNG BÁO|BÁO CÁO|KẾ HOẠCH|BIÊN BẢN|CHỈ THỊ|HƯỚNG DẪN|CHƯƠNG TRÌNH|QUY CHẾ|QUY ĐỊNH|NGHỊ QUYẾT|GIẤY MỜI|GIẤY GIỚI THIỆU|ĐỀ ÁN|PHƯƠNG ÁN|CÔNG ĐIỆN|THÔNG CÁO|KẾT LUẬN)\\s*:?$"}
+    - {cap: 1, ten: "", mau: "^Kính gửi\\s*:"}
+    - {cap: 1, ten: "", mau: "^(Chương|CHƯƠNG)\\s+[IVXLC\\d]+\\b"}
+    - {cap: 2, ten: "", mau: "^(Mục|MỤC)\\s+\\d+\\b"}
+    - {cap: 2, ten: "", mau: "^Điều\\s+\\d+[a-zA-Z]?\\s*\\."}
+    - {cap: 1, ten: "", mau: "^(PHỤ LỤC|Phụ lục)\\b"}
+    - {cap: 1, ten: "Nơi nhận", mau: "^Nơi nhận\\s*:"}

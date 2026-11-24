@@ -1,0 +1,159 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Chuẩn slide "Action Title" đa mục đích (báo cáo, thuyết trình, bán hàng, đào tạo).
+# Mọi con số bên dưới là MẶC ĐỊNH THAM KHẢO, không khóa cứng: đổi ở đây, hoặc đổi từng lần trong giao diện
+# (mục "Tùy chỉnh nâng cao"). Các mục `standard.*` là ngưỡng dùng cho báo cáo kiểm tra tuân thủ và cho việc tách slide.
+name: "Chuẩn Action Title (đa mục đích)"
+loai: slide
+muc_dich: "chung"
+mo_ta: "Tiêu đề là câu kết luận, mỗi slide một ý, tối đa 5 khối ý, phối màu 60-30-10, chữ không chân, tương phản WCAG."
+font: "Arial"
+
+slide:
+  width_in: 13.333          # 16:9
+  height_in: 7.5
+
+# Phối màu 60-30-10: nền 60% (bg), cấu trúc 30% (primary, accent), nhấn 10% (highlight)
+colors:
+  bg: "FFFFFF"              # nền chiếm ~60% (có thể dùng F8F9FA)
+  primary: "0F172A"         # cấu trúc: tiêu đề, nền slide mở đầu/kết
+  accent: "0284C7"          # cấu trúc: đường lưới, khối nhấn, dấu đầu dòng (đồ họa, không dùng cho chữ nhỏ)
+  highlight: "B91C1C"       # nhấn ~10%: từ khóa cốt lõi, số liệu trọng tâm (B91C1C hoặc D97706)
+  text: "1E293B"
+  muted: "475569"           # chân trang, nguồn: xám chì
+  on_primary: "FFFFFF"
+  border: "CBD5E1"
+  zebra: "F1F5F9"
+  panel: "1E293B"
+  card: "F8F9FA"
+
+# Cấu trúc 3 vùng cố định theo phần trăm chiều cao/ngang slide
+layout:
+  use_percent: true         # true: tính lại vị trí tiêu đề/nội dung/chân trang từ các phần trăm dưới đây
+  title_zone_pct: 18        # vùng tiêu đề 15-20% phía trên
+  center_zone_pct: 67       # vùng trọng tâm 65-70%
+  footer_zone_pct: 15       # vùng chân trang 10-15%
+  side_margin_pct: 6        # lề trái/phải 5-8% bề rộng
+  vertical_margin_pct: 5    # lề trên/dưới >= 5%
+
+header:
+  top_bar: false
+  marker: true
+  underline: "mo"           # "dai" | "mo" | "khong"
+  underline_pt: 0.75
+
+title:
+  size_pt: 30               # 28-36 đậm, canh trái
+  min_size_pt: 28
+  left_in: 0.8
+  top_in: 0.375
+  width_in: 11.73
+  height_in: 0.98
+  chars_per_line_at_32: 62
+  max_lines: 2
+
+body:
+  size_pt: 22               # 18-24
+  sub_size_pt: 18
+  line_spacing: 1.2
+  left_in: 0.8
+  top_in: 1.6
+  width_in: 11.73
+  height_in: 4.6
+  width_with_image_in: 6.6
+  max_bullets: 5            # = standard.chunking.max_chunks (được đồng bộ khi dựng)
+  max_lines: 9
+  long_item_chars: 120
+  bullet_color: "accent"
+  highlight_numbers: true   # tô màu nhấn cho số liệu (%, tỷ, triệu...)
+
+table:
+  font_sizes_pt: [18, 16, 14, 12]
+  paged_font_pt: 14
+  cell_pad_in: 0.1
+  row_pad_in: 0.16
+  min_col_in: 0.8
+
+image:
+  per_slide: 4
+  gap_in: 0.2
+  right_x_in: 7.8
+  right_w_in: 4.73
+  source_caption: false     # thêm khung "Nguồn: ..." (APA 7) dưới mỗi hình, điền sau
+  caption_size_pt: 11
+
+footer:
+  size_pt: 12               # 12-14, xám chì
+  line: true
+  line_y_in: 6.55
+  text_y_in: 6.65
+
+agenda:
+  enabled: true
+  title: "Nội dung chính"
+  min_items: 3
+  max_items: 8
+
+title_slide:
+  layout: "trai"
+  uppercase: false
+  title_size_pt: 40
+  sub_size_pt: 20
+  default_title: "BÁO CÁO"
+  nhan:
+    hoc_phan: ""
+    giang_vien: "Người trình bày"
+
+closing:
+  enabled: true
+  text: "Xin trân trọng cảm ơn"
+  size_pt: 40
+  show_contact: false       # in người trình bày/đơn vị dưới lời kết
+
+# Bố cục nội dung tự chọn cho slide chỉ có chữ
+content_layout:
+  cards: true               # 3-5 ý ngắn, không có ý con -> dạng thẻ
+  card_max_words: 14
+  timeline: true            # các ý bắt đầu bằng năm/quý/bước -> dòng thời gian
+  min_items: 3
+
+# Tiến trình hiển thị (animation sư phạm). Mặc định TẮT vì hiệu ứng cần mở bằng PowerPoint để kiểm tra.
+animation:
+  enabled: false
+  kind: "fade"              # appear | fade | wipe
+  duration_s: 0.5           # 0.25 - 0.5
+  dim_previous: false       # làm mờ khối đã nói xong
+  dim_opacity_pct: 30
+
+# Ngưỡng dùng cho kiểm tra tuân thủ và tách slide
+standard:
+  action_title:
+    enabled: true
+    min_words: 6
+    max_words: 22
+  chunking:
+    max_chunks: 5           # tối đa 3-5 khối ý/slide
+    max_lines_per_chunk: 5
+    max_words_per_line: 7   # mỗi dòng 5-7 từ
+    long_item: "warn"       # warn = chỉ cảnh báo | notes = giữ ý chính trên slide, chuyển cả câu vào ghi chú | keep
+    keyword_words: 12       # độ dài ý chính khi long_item = notes
+  contrast:
+    level: "AA"             # AA | AAA
+    body: 4.5               # chữ < 18pt
+    large: 3.0              # chữ >= 18pt hoặc >= 14pt đậm
+    graphics: 3.0
+    grayscale: true         # kiểm tra mô phỏng đơn sắc
+  zones:
+    title_zone_min_pct: 15
+    title_zone_max_pct: 20
+    footer_zone_min_pct: 10
+    footer_zone_max_pct: 15
+    side_margin_min_pct: 5
+    side_margin_max_pct: 8
+  typography:
+    title_min_pt: 28
+    title_max_pt: 36
+    body_min_pt: 18
+    body_max_pt: 24
+    footer_min_pt: 12
+    footer_max_pt: 14
+    max_fonts: 2
