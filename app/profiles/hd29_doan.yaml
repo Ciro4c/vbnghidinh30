@@ -29,3 +29,10 @@ header:
 so_van_ban:
   dau_hai_cham: true
   pad_below_10: true
+
+form:
+  co_quan_chu_quan: "BAN CHẤP HÀNH TRUNG ƯƠNG"
+  co_quan_ban_hanh: "VĂN PHÒNG"
+  ky_hieu: "HD/TWĐTN-VP"
+  quyen_han_ky: "T/M BAN BÍ THƯ"
+  chuc_vu_ky: "BÍ THƯ"

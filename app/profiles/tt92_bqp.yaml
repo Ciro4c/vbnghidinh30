@@ -1,7 +1,9 @@
 # Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
 # Thể thức văn bản hành chính trong Quân đội theo Thông tư 92/2012/TT-BQP (26/7/2012).
-# LƯU Ý: dựng từ bản tóm tắt (lề, cỡ chữ các thành phần chính). Cần đối chiếu bản gốc và kiểm tra Thông tư này còn
-# hiệu lực hay đã được thay thế; số trang của Thông tư ở góc phải chân trang nhưng ứng dụng hiện chỉ đặt giữa lề trên.
+# Đã tra cứu (11/2026): Thông tư 92/2012/TT-BQP là Thông tư hướng dẫn thể thức, kỹ thuật trình bày văn bản hành chính
+# trong Quân đội, hiệu lực từ 09/9/2012, cổng vbpl.vn ghi còn hiệu lực. (Thông tư 91/2012 là Quy chế văn thư, lưu trữ, bảo mật;
+# Thông tư 68/2025 là về tuyển quân, không liên quan.)
+# LƯU Ý: dựng từ bản tóm tắt (lề, cỡ chữ các thành phần chính), cần đối chiếu bản gốc. Số trang của Thông tư ở góc phải chân trang nhưng ứng dụng hiện chỉ đặt giữa lề trên.
 # Người ký: trước họ tên chỉ ghi cấp bậc quân hàm, không ghi học hàm, học vị (tự nhập ở ô Họ tên).
 extends: nd30
 name: "Quân đội (Thông tư 92/2012/TT-BQP)"

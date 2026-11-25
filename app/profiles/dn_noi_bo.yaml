@@ -1,0 +1,19 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Văn bản nội bộ doanh nghiệp: quy chế, quy trình, thông báo nội bộ, biên bản họp, báo cáo gửi lãnh đạo.
+extends: dn_cong_van
+name: "Doanh nghiệp: văn bản nội bộ (không quốc hiệu)"
+loai: van_ban
+mo_ta: "Không in quốc hiệu, tiêu ngữ. Đầu văn bản gồm tên công ty bên trái, số ký hiệu và ngày tháng bên phải; tên loại, trích yếu, nội dung, chữ ký."
+
+thanh_phan:
+  quoc_hieu: false
+  tieu_ngu: false
+  kinh_gui: false
+
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ nội bộ"
+    bat: {}
+  khong_dau_van_ban:
+    ten: "Chỉ tiêu đề, nội dung, chữ ký"
+    bat: {co_quan: false, so_ky_hieu: false, dia_danh_ngay: false, noi_nhan: false}

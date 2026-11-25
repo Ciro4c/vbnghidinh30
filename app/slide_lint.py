@@ -114,7 +114,7 @@ def kiem_tra_slide(slides, prof: dict) -> list[dict]:
             elif n > at.get("max_words", 22):
                 out.append({"muc": "goi_y", "ma": "action_title", "slide": i,
                             "noi_dung": f"Tiêu đề dài {n} từ, nên ≤ {at.get('max_words', 22)}"})
-        if not sl.items:
+        if not sl.items or getattr(sl, "so_do", False):
             continue
         mx = ck.get("max_chunks", 5)
         if len(sl.items) > mx:

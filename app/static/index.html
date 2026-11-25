@@ -105,22 +105,43 @@
         </div>
         <div class="tpgrid" id="tp_box" aria-label="Thành phần thể thức"></div>
         <p class="hint">Bỏ chọn thành phần nào thì văn bản không in thành phần đó (ví dụ bỏ Quốc hiệu và Tiêu ngữ cho văn bản nội bộ).</p>
-        <details><summary>Tùy chỉnh nâng cao (lề, cỡ chữ, giãn dòng...)</summary>
-          <label>Thông số ghi đè (JSON, cùng cấu trúc với file thể thức)
-            <textarea id="tuy_chinh" class="mono" placeholder='{"margins_mm": {"left": 35}, "body": {"size_pt": 13}}'></textarea></label>
-          <p class="hint">Để trống = dùng mặc định của thể thức. Giá trị ngoài khoảng hợp lý sẽ bị từ chối. Xem tất cả thông số: mở <code>/api/profile/nd30</code>.</p>
+        <details><summary>Tùy chỉnh trình bày (lề, cỡ chữ, giãn dòng, phông)</summary>
+          <p class="hint">Ô để trống = theo thể thức đã chọn (giá trị mặc định hiện mờ trong ô). Chỉ điền ô nào muốn đổi.</p>
+          <div class="row">
+            <label>Lề trên (mm) <input id="tc_top" type="number" step="1" data-p="margins_mm.top"></label>
+            <label>Lề dưới (mm) <input id="tc_bottom" type="number" step="1" data-p="margins_mm.bottom"></label>
+            <label>Lề trái (mm) <input id="tc_left" type="number" step="1" data-p="margins_mm.left"></label>
+            <label>Lề phải (mm) <input id="tc_right" type="number" step="1" data-p="margins_mm.right"></label>
+          </div>
+          <div class="row">
+            <label>Cỡ chữ nội dung (pt) <input id="tc_size" type="number" step="0.5" data-p="body.size_pt"></label>
+            <label>Giãn dòng (lần) <input id="tc_line" type="number" step="0.05" data-p="body.line_spacing"></label>
+            <label>Thụt đầu dòng (cm) <input id="tc_indent" type="number" step="0.1" data-p="body.first_line_indent_cm"></label>
+            <label>Phông chữ <input id="tc_font" data-p="font" placeholder="Times New Roman"></label>
+            <label>Ngắt trang trước Chương / Mục lục / Phụ lục <select id="tc_ngat" data-p="ngat_trang.chuong" data-bool><option value="">Theo thể thức</option><option value="true">Có</option><option value="false">Không</option></select></label>
+            <label>Xóa style thừa <select id="tc_don_style" data-p="don_style"><option value="">Theo thể thức</option><option value="thua">Xóa kiểu không dùng (giữ Heading 1-5)</option><option value="toi_gian">Tối giản (xóa cả Heading không dùng)</option><option value="giu">Giữ nguyên mọi kiểu</option></select></label>
+            <label>Mục lục tự động: hỏi cập nhật khi mở Word <select id="tc_muc_luc" data-p="cap_nhat_muc_luc" data-bool><option value="">Theo thể thức</option><option value="false">Không (dùng số trang ước tính)</option><option value="true">Có (số trang chính xác)</option></select></label>
+          </div>
           <div class="actions">
+            <button type="button" class="b" id="tc_xoa">Về mặc định</button>
             <button type="button" class="b" id="luu_cau_hinh">Lưu cấu hình ra file</button>
             <label class="b" style="margin:0;cursor:pointer">Nạp cấu hình <input type="file" id="nap_cau_hinh" accept=".json" hidden></label>
           </div>
+          <details><summary>Dành cho người rành: nhập thêm thông số dạng JSON</summary>
+            <textarea id="tuy_chinh" class="mono" placeholder='{"header": {"co_quan_size_pt": 12}}'></textarea>
+            <p class="hint">Gộp với các ô ở trên. Giá trị ngoài khoảng hợp lý sẽ bị từ chối. Xem tất cả thông số: mở <code>/api/profile/nd30</code>.</p>
+          </details>
         </details>
       </fieldset>
 
-      <fieldset>
-        <legend>Bước 2. Rà soát thông tin</legend>
+      <fieldset id="fs_thongtin">
+        <legend>Bước 2. Thông tin văn bản (chỉ hiện các mục thể thức đang dùng)</legend>
+        <ul class="lint" id="ra_soat" aria-live="polite"></ul>
         <div class="grid">
           <label>Loại văn bản
-            <select id="loai_van_ban"></select></label>
+            <select id="loai_van_ban"></select>
+            <small id="loai_goi_y" class="hint"></small>
+            <button type="button" id="chen_khung" class="phu" hidden>Chèn khung các mục vào nội dung</button></label>
           <label>Cơ quan chủ quản (nếu có)
             <input id="co_quan_chu_quan" placeholder="UBND TỈNH ABC"></label>
           <label>Cơ quan ban hành *
@@ -217,12 +238,18 @@
 
     <fieldset>
       <legend>Bước 2. Dấu trang (bookmark)</legend>
-      <label class="chk"><input type="checkbox" id="bm_bat" checked> Ghi dấu trang theo danh sách dưới đây (thay dấu trang cũ)</label>
-      <label>Mỗi dòng một dấu trang: <code>trang | cấp (0 = lớn nhất) | tiêu đề</code>
-        <textarea id="bm_ds" class="mono" placeholder="1 | 0 | Quyết định&#10;2 | 1 | Điều 1. Phạm vi điều chỉnh"></textarea></label>
-      <div class="actions">
-        <button type="button" class="b" id="bm_goi_y">Điền danh sách gợi ý theo thể thức</button>
-        <button type="button" class="b" id="bm_goc">Điền dấu trang hiện có</button>
+      <label class="chk"><input type="radio" name="bm_mode" value="tu_dong" checked> Tự động theo thể thức (khuyên dùng): dò quốc hiệu, tên loại, Chương, Mục, Điều, Phụ lục, Nơi nhận</label>
+      <label class="chk"><input type="radio" name="bm_mode" value="giu"> Giữ nguyên dấu trang có sẵn trong file</label>
+      <label class="chk"><input type="radio" name="bm_mode" value="tay"> Tự nhập / chỉnh danh sách</label>
+      <label class="chk"><input type="radio" name="bm_mode" value="khong"> Xóa hết dấu trang</label>
+      <p class="hint" id="bm_xem">Bấm “Phân tích” ở bước 1 để xem trước các dấu trang sẽ được ghi.</p>
+      <div id="bm_tay" hidden>
+        <label>Mỗi dòng một dấu trang: <code>trang | cấp | tiêu đề</code> (cấp 1 = lớn nhất, 2 = con, 3 = cháu)
+          <textarea id="bm_ds" class="mono" placeholder="1 | 1 | Quyết định&#10;2 | 2 | Điều 1. Phạm vi điều chỉnh"></textarea></label>
+        <div class="actions">
+          <button type="button" class="b" id="bm_goi_y">Điền gợi ý theo thể thức</button>
+          <button type="button" class="b" id="bm_goc">Điền dấu trang hiện có</button>
+        </div>
       </div>
     </fieldset>
 
@@ -255,7 +282,10 @@
       <div class="grid">
         <div>
           <label class="chk"><input type="checkbox" id="pk_bat"> Chèn chữ ký</label>
-          <label>Ảnh chữ ký <input type="file" id="pk_file" accept="image/png,image/jpeg"></label>
+          <label>Ảnh chữ ký (có thể bỏ trống nếu chỉ in chức danh, họ tên) <input type="file" id="pk_file" accept="image/png,image/jpeg"></label>
+          <label>Quyền hạn ký (nếu có) <input id="pk_qh" placeholder="KT. GIÁM ĐỐC"></label>
+          <label>Chức vụ <input id="pk_cv" placeholder="PHÓ GIÁM ĐỐC"></label>
+          <label>Họ tên người ký <input id="pk_ten" placeholder="Nguyễn Văn A"></label>
           <label>Trang <input id="pk_trang" value="cuoi"></label>
           <div class="row"><label>Vị trí ngang (%) <input id="pk_x" type="number" value="70" min="0" max="100"></label>
             <label>Vị trí dọc (%) <input id="pk_y" type="number" value="82" min="0" max="100"></label>
@@ -273,6 +303,20 @@
         </div>
       </div>
       <p class="hint">Vị trí tính theo tâm ảnh, tỷ lệ % của trang (0 = mép trái/trên). Đây là ảnh hình thức, không phải chữ ký số có giá trị pháp lý như chữ ký số của CA.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Bước 5. Đánh số trang (tùy chọn)</legend>
+      <label class="chk"><input type="checkbox" id="st_bat"> Đánh số trang lên PDF</label>
+      <p class="hint" id="st_hien">Bấm “Phân tích PDF” để biết file đã có số trang chưa.</p>
+      <div class="row">
+        <label>Vị trí <select id="st_vt"><option value="tren_giua">Trên, giữa (NĐ 30)</option><option value="duoi_giua">Dưới, giữa</option><option value="tren_phai">Trên, phải</option><option value="duoi_phai">Dưới, phải</option></select></label>
+        <label>Định dạng <select id="st_dd"><option value="{n}">2</option><option value="Trang {n}">Trang 2</option><option value="{n}/{tong}">2/10</option><option value="- {n} -">- 2 -</option></select></label>
+        <label>Bắt đầu từ trang <input id="st_tu" type="number" min="1" value="2"></label>
+        <label>Số của trang đầu tiên <input id="st_so" type="number" min="0" placeholder="theo thứ tự trang"></label>
+        <label>Cỡ chữ (pt) <input id="st_co" type="number" min="8" max="20" value="13"></label>
+      </div>
+      <p class="hint">Số trang được in như hình ảnh nhỏ (không chọn/sao chép được). Nếu PDF đã có số trang, hãy chọn vị trí khác hoặc tắt mục này để khỏi chồng số.</p>
     </fieldset>
 
     <fieldset>
@@ -470,10 +514,25 @@ $("tab-pdf").onclick = () => chonTab("pdf");
 $("tab-sl").onclick = () => chonTab("sl");
 $("tab-lo").onclick = () => chonTab("lo");
 
-// ----- loại văn bản
-fetch("/api/loai-van-ban").then((r) => r.json()).then((m) => {
-  for (const [k, v] of Object.entries(m)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("loai_van_ban").appendChild(o); }
-});
+// ----- loại văn bản/tài liệu: theo thể thức đang chọn
+let loaiHienTai = {};
+async function napLoai(id) {
+  const r = await layJson("/api/loai-van-ban?the_thuc=" + encodeURIComponent(id));
+  loaiHienTai = r.loai; const sel = $("loai_van_ban"), cu = sel.value; sel.innerHTML = "";
+  for (const [k, v] of Object.entries(loaiHienTai)) { const o = document.createElement("option"); o.value = k; o.textContent = v.nhan; sel.appendChild(o); }
+  if (cu in loaiHienTai) sel.value = cu;
+  hienGoiYLoai();
+}
+function hienGoiYLoai() {
+  const e = loaiHienTai[$("loai_van_ban").value], box = $("loai_goi_y"); if (!box) return;
+  if (!e) { box.textContent = ""; return; }
+  const t = [];
+  if (e.kinh_gui === true) t.push("có mục Kính gửi"); if (e.kinh_gui === false) t.push("không có Kính gửi");
+  if (e.trich_yeu_nhan) t.push("trích yếu/tên: " + e.trich_yeu_nhan);
+  box.textContent = (t.length ? t.join("; ") + ". " : "") + (e.muc.length ? "Mục thường có: " + e.muc.join(" · ") + "." : "");
+  $("chen_khung").hidden = !e.muc.length;
+}
+$("loai_van_ban").addEventListener("change", hienGoiYLoai);
 $("ngay").value = homNay();
 
 // ----- đọc file Word thô
@@ -487,14 +546,20 @@ $("doc_file").onclick = async () => {
     const { fields, canh_bao, hinh, ky_tu_la } = await res.json();
     hienKyTuLa(ky_tu_la || []);
     hinhHienTai = hinh || {};
+    if (fields.the_thuc_goi_y && !(fields.loai_van_ban in loaiHienTai) && [...$("the_thuc").options].some((o) => o.value === fields.the_thuc_goi_y)) {
+      const cu = $("the_thuc").value; $("the_thuc").value = fields.the_thuc_goi_y; await napTheThuc();
+      canh_bao.unshift("Loại “" + (loaiHienTai[fields.loai_van_ban] || {}).nhan + "” không có trong thể thức trước đó nên đã chuyển sang thể thức “" + $("the_thuc").selectedOptions[0].textContent + "”.");
+    }
     for (const k of FIELDS) {
       if (!(k in fields)) continue;
       const v = fields[k];
       if (k === "ngay" && !v) continue;
       $(k).value = Array.isArray(v) ? v.join("\n") : v;
     }
+    hienGoiYLoai();
     $("phu_luc_ngang").checked = !!fields.phu_luc_ngang;
     showWarns("warns", canh_bao);
+    henRaSoat();
     setMsg("msg_imp", "Đã đọc file. Hãy rà soát các ô bên dưới" + ($("tai_ngay").checked ? "." : ", rồi bấm “Tạo file Word”."));
     if ($("tai_ngay").checked && $("co_quan_ban_hanh").value.trim() && $("noi_dung").value.trim()) {
       $("f").requestSubmit();
@@ -681,7 +746,7 @@ async function napThongTin() {
 async function napTheThuc() {
   const id = $("the_thuc").value;
   const prof = await layJson("/api/profile/" + id);
-  hoSoHienTai = prof;
+  hoSoHienTai = prof; goiYTuyChinh();
   $("the_thuc_mo_ta").textContent = prof.mo_ta || "";
   const box = $("tp_box"); box.innerHTML = "";
   const nhan = prof.nhan_thanh_phan || {};
@@ -692,27 +757,83 @@ async function napTheThuc() {
   }
   const m = $("mau_tp"); m.innerHTML = "";
   for (const [k, v] of Object.entries(prof.mau_thanh_phan || {})) { const o = document.createElement("option"); o.value = k; o.textContent = v.ten; m.appendChild(o); }
+  await napLoai(id).catch(() => {});
+  capNhatForm(); henRaSoat();
 }
+
+// ----- form động theo thể thức + rà soát logic
+const TP_TRUONG = { co_quan_chu_quan: "co_quan", co_quan_ban_hanh: "co_quan", so: "so_ky_hieu", ky_hieu: "so_ky_hieu", dia_danh: "dia_danh_ngay", ngay: "dia_danh_ngay",
+  trich_yeu: "trich_yeu", kinh_gui: "kinh_gui", quyen_han_ky: "chu_ky", chuc_vu_ky: "chu_ky", nguoi_ky: "chu_ky", noi_nhan: "noi_nhan", hien_so_trang_dau: "so_trang" };
+const BAT_BUOC_THEO_TP = { co_quan_ban_hanh: "co_quan", ngay: "dia_danh_ngay" };
+function capNhatForm() {
+  const tp = thanhPhan(), form = (hoSoHienTai && hoSoHienTai.form) || {};
+  for (const [id, k] of Object.entries(TP_TRUONG)) {
+    const el = $(id); if (!el) continue;
+    const box = el.closest("label") || el, bat = tp[k] !== false;
+    box.hidden = !bat;
+    if (BAT_BUOC_THEO_TP[id]) el.required = bat;
+    if (form[id] && el.tagName !== "TEXTAREA" || (form[id] && el.tagName === "TEXTAREA")) el.placeholder = form[id];
+  }
+  const ky = $("ky_file") && $("ky_file").closest("fieldset"); if (ky) ky.hidden = tp.chu_ky === false;
+  const pl = $("phu_luc") && $("phu_luc").closest("fieldset"); if (pl) pl.hidden = tp.phu_luc === false;
+  if (!tp.dia_danh_ngay && !$("ngay").value) $("ngay").value = homNay();
+}
+let rsHen = null;
+function duLieuForm() { const d = {}; for (const k of FIELDS) d[k] = $(k).value; return d; }
+async function raSoat() {
+  try {
+    const kq = await layJson("/api/ra-soat", { method: "POST", body: JSON.stringify({ fields: duLieuForm(), profile: $("the_thuc").value || "nd30", thanh_phan: thanhPhan(), tuy_chinh: (() => { try { return tuyChinhWord(); } catch (e) { return {}; } })() }) });
+    hienDanhSach("ra_soat", kq.ket_qua.map((x) => ({ muc: x.muc, noi_dung: (x.truong ? "[" + (document.querySelector('label:has(#' + x.truong + ')')?.firstChild?.textContent || x.truong).trim() + "] " : "") + x.noi_dung })));
+  } catch (e) { /* bỏ qua: rà soát chỉ là gợi ý */ }
+}
+function henRaSoat() { clearTimeout(rsHen); rsHen = setTimeout(raSoat, 500); }
+$("f").addEventListener("input", henRaSoat);
+$("f").addEventListener("change", () => { capNhatForm(); henRaSoat(); });
+$("chen_khung").onclick = () => {
+  const e = loaiHienTai[$("loai_van_ban").value]; if (!e || !e.muc.length) return;
+  const nd = $("noi_dung"); if (nd.value.trim() && !confirm("Nội dung đang có chữ. Thêm khung mục vào cuối?")) return;
+  nd.value = (nd.value.trim() ? nd.value.trimEnd() + "\n\n" : "") + e.muc.map((m, i) => "# " + m + "\n").join("\n"); henRaSoat();
+};
 $("the_thuc").onchange = () => napTheThuc().catch((e) => setMsg("msg", e.message, true));
 $("mau_tp").onchange = () => {
   const mau = (hoSoHienTai.mau_thanh_phan || {})[$("mau_tp").value]; if (!mau) return;
   for (const c of $("tp_box").querySelectorAll("input")) c.checked = (c.dataset.tp in mau.bat) ? !!mau.bat[c.dataset.tp] : !!hoSoHienTai.thanh_phan[c.dataset.tp];
+  capNhatForm(); henRaSoat();
 };
 function thanhPhan() { const o = {}; for (const c of $("tp_box").querySelectorAll("input")) o[c.dataset.tp] = c.checked; return o; }
+function datKhoa(o, duong, v) { const k = duong.split("."); let c = o; for (let i = 0; i < k.length - 1; i++) c = c[k[i]] = c[k[i]] || {}; c[k[k.length - 1]] = v; }
+function tuyChinhWord() {
+  let tc = {}; const t = $("tuy_chinh").value.trim();
+  if (t) { try { tc = JSON.parse(t); } catch (e) { throw new Error("Ô JSON trong “Tùy chỉnh trình bày” không hợp lệ."); } }
+  for (const el of document.querySelectorAll("#f [data-p]")) {
+    const v = el.value.trim(); if (v === "") continue;
+    datKhoa(tc, el.dataset.p, el.type === "number" ? Number(v) : ("bool" in el.dataset ? v === "true" : v));
+    if ("bool" in el.dataset && el.dataset.p === "ngat_trang.chuong" && v === "true") datKhoa(tc, "ngat_trang.tieu_de", "MỤC LỤC|LỜI|MỞ ĐẦU|PHỤ LỤC|TÀI LIỆU THAM KHẢO|DANH MỤC");
+  }
+  return tc;
+}
+function goiYTuyChinh() {   // hiện giá trị mặc định của thể thức đang chọn trong các ô (mờ)
+  if (!hoSoHienTai) return;
+  for (const el of document.querySelectorAll("#f [data-p]")) {
+    let v = hoSoHienTai; for (const k of el.dataset.p.split(".")) v = v == null ? v : v[k];
+    if (el.tagName === "SELECT") { el.value = ""; continue; }
+    el.placeholder = v == null || typeof v === "object" ? "" : String(v); el.value = "";
+  }
+}
+$("tc_xoa").onclick = () => { for (const el of document.querySelectorAll("#f [data-p]")) el.value = ""; $("tuy_chinh").value = ""; };
 async function anhKy(fileId, rongId, damId, tachId, kieu) {
   const f = $(fileId).files[0]; if (!f) return {};
   return { b64: await docB64(f), [kieu]: Number($(rongId).value), do_dam: Number($(damId).value), tach_nen: $(tachId).checked };
 }
 async function thamSoThucThe() {
-  let tc = {}; const t = $("tuy_chinh").value.trim();
-  if (t) { try { tc = JSON.parse(t); } catch (e) { throw new Error("Ô “Thông số ghi đè” không phải JSON hợp lệ."); } }
+  const tc = tuyChinhWord();
   return { thanh_phan: thanhPhan(), tuy_chinh: tc,
     chu_ky_anh: await anhKy("ky_file", "ky_rong", "ky_dam", "ky_tach", "rong_mm"),
     con_dau_anh: await anhKy("dau_file", "dau_rong", "dau_dam", "dau_tach", "duong_kinh_mm") };
 }
 xemAnh("ky_file", "ky_xem"); xemAnh("dau_file", "dau_xem");
 $("luu_cau_hinh").onclick = () => {
-  let tc = {}; try { tc = JSON.parse($("tuy_chinh").value || "{}"); } catch (e) {}
+  let tc = {}; try { tc = tuyChinhWord(); } catch (e) { setMsg("msg", e.message, true); return; }
   taiVe(new Blob([JSON.stringify({ the_thuc: $("the_thuc").value, thanh_phan: thanhPhan(), tuy_chinh: tc }, null, 2)], { type: "application/json" }), "cau-hinh-the-thuc.json");
 };
 $("nap_cau_hinh").onchange = async () => {
@@ -720,7 +841,11 @@ $("nap_cau_hinh").onchange = async () => {
     const d = JSON.parse(await $("nap_cau_hinh").files[0].text());
     if (d.the_thuc) { $("the_thuc").value = d.the_thuc; await napTheThuc(); }
     for (const c of $("tp_box").querySelectorAll("input")) if (d.thanh_phan && c.dataset.tp in d.thanh_phan) c.checked = !!d.thanh_phan[c.dataset.tp];
-    $("tuy_chinh").value = d.tuy_chinh && Object.keys(d.tuy_chinh).length ? JSON.stringify(d.tuy_chinh, null, 2) : "";
+    $("tc_xoa").click();
+    const bo = { margins_mm: ["top", "bottom", "left", "right"], body: ["size_pt", "line_spacing", "first_line_indent_cm"] }, con = JSON.parse(JSON.stringify(d.tuy_chinh || {}));
+    for (const el of document.querySelectorAll("#f [data-p]")) { let c = con, k = el.dataset.p.split("."); for (let i = 0; i < k.length - 1 && c; i++) c = c[k[i]]; if (c && k[k.length - 1] in c) { el.value = c[k[k.length - 1]]; delete c[k[k.length - 1]]; } }
+    for (const g of Object.keys(con)) if (con[g] && typeof con[g] === "object" && !Object.keys(con[g]).length) delete con[g];
+    $("tuy_chinh").value = Object.keys(con).length ? JSON.stringify(con, null, 2) : "";
     setMsg("msg", "Đã nạp cấu hình.");
   } catch (e) { setMsg("msg", "File cấu hình không hợp lệ.", true); }
 };
@@ -764,17 +889,39 @@ function hienKetQuaPdf(d) {
   hienDanhSach("pdf_la", ds);
 }
 function thanhPhanPdf() { return thanhPhan(); }
+$("pdf_file").onchange = () => { if ($("pdf_file").files[0]) $("pdf_pt").click(); };
 $("pdf_pt").onclick = async () => {
   const f = $("pdf_file").files[0]; if (!f) { setMsg("msg_pdf_pt", "Hãy chọn file PDF.", true); return; }
   $("pdf_pt").disabled = true; setMsg("msg_pdf_pt", "Đang phân tích...");
   try {
     pdfPhanTich = await layJson("/api/pdf/phan-tich?profile=" + encodeURIComponent($("pdf_the_thuc").value) + "&thanh_phan=" + encodeURIComponent(JSON.stringify(thanhPhanPdf())), { method: "POST", body: await f.arrayBuffer() });
     hienKetQuaPdf(pdfPhanTich); setMsg("msg_pdf_pt", "");
-    if (pdfPhanTich.bookmark_goc.length && !$("bm_ds").value) $("bm_goc").click();
+    capNhatBmXem(); hienSoTrang(pdfPhanTich);
   } catch (e) { setMsg("msg_pdf_pt", e.message, true); }
   finally { $("pdf_pt").disabled = false; }
 };
-const dongBm = (x) => `${x.trang} | ${x.cap ?? 0} | ${x.tieu_de}`;
+const dongBm = (x) => `${x.trang} | ${x.cap || 1} | ${x.tieu_de}`;
+const bmMode = () => document.querySelector('input[name="bm_mode"]:checked').value;
+function hienSoTrang(d) {
+  const h = d.so_trang_hien_co, m = d.so_trang_mac_dinh;
+  if (m) { $("st_vt").value = m.vi_tri; $("st_dd").value = m.dinh_dang; $("st_tu").value = m.tu_trang; $("st_co").value = m.co_chu_pt; }
+  let t;
+  if (!h) t = "PDF dạng ảnh: không kiểm tra được số trang hiện có.";
+  else if (!h.co_so) t = "Kiểm tra: chưa thấy số trang trong lớp chữ (số trang dạng ảnh sẽ không dò được).";
+  else t = `Kiểm tra: thấy số trang ở ${h.co_so}/${h.tong_trang} trang (${h.vi_tri}), ${h.lien_tuc ? "liên tục" : "KHÔNG liên tục"}, trang 1 ${h.trang_1_co_so ? "có" : "không"} hiện số.` + (h.ghi_chu.length ? " " + h.ghi_chu.join(" ") : "");
+  $("st_hien").textContent = t;
+}
+function capNhatBmXem() {
+  $("bm_tay").hidden = bmMode() !== "tay";
+  const el = $("bm_xem");
+  if (!pdfPhanTich) { el.textContent = "Bấm “Phân tích” ở bước 1 để xem trước các dấu trang sẽ được ghi."; return; }
+  const m = bmMode(), gy = pdfPhanTich.bookmark_goi_y || [], goc = pdfPhanTich.bookmark_goc || [];
+  if (m === "tu_dong") el.textContent = pdfPhanTich.co_lop_chu ? (gy.length ? `Sẽ ghi ${gy.length} dấu trang: ` + gy.slice(0, 6).map((x) => `tr.${x.trang} ${x.tieu_de}`).join("; ") + (gy.length > 6 ? "…" : "") : "Không dò được tiêu đề nào theo thể thức đã chọn; hãy chọn thể thức khác ở bước 1 hoặc chọn “Tự nhập”.") : "PDF này là ảnh (không có lớp chữ) nên không tự dò được; hãy chọn “Tự nhập”.";
+  else if (m === "giu") el.textContent = `Giữ ${goc.length} dấu trang có sẵn.`;
+  else if (m === "khong") el.textContent = "Tất cả dấu trang sẽ bị xóa.";
+  else el.textContent = "";
+}
+document.querySelectorAll('input[name="bm_mode"]').forEach((r) => r.onchange = () => { capNhatBmXem(); if (bmMode() === "tay" && !$("bm_ds").value.trim() && pdfPhanTich) $("bm_goi_y").click(); });
 $("bm_goi_y").onclick = () => { if (!pdfPhanTich) { setMsg("msg_pdf_pt", "Hãy phân tích PDF trước.", true); return; } $("bm_ds").value = (pdfPhanTich.bookmark_goi_y || []).map(dongBm).join("\n"); };
 $("bm_goc").onclick = () => { if (!pdfPhanTich) { setMsg("msg_pdf_pt", "Hãy phân tích PDF trước.", true); return; } $("bm_ds").value = (pdfPhanTich.bookmark_goc || []).map(dongBm).join("\n"); };
 function docBm() {
@@ -811,17 +958,21 @@ $("pdf_go").onclick = async () => {
   $("pdf_go").disabled = true; $("warns_pdf").innerHTML = ""; setMsg("msg_pdf", "Đang xử lý...");
   try {
     const tep = [["pdf", await f.arrayBuffer()]], o = {};
-    if ($("bm_bat").checked && $("bm_ds").value.trim()) o.bookmark = { giu_goc: false, danh_sach: docBm() };
+    const bm = bmMode();
+    if (bm === "tu_dong") o.bookmark = { giu_goc: false, tu_dong: true, profile: $("pdf_the_thuc").value };
+    else if (bm === "tay") o.bookmark = { giu_goc: false, danh_sach: docBm() };
+    else if (bm === "khong") o.bookmark = { giu_goc: false, danh_sach: [] };
     else o.bookmark = { giu_goc: true };
     const mau = $("wc_mau").value.replace("#", "");
     o.watermark_chu = { bat: $("wc_bat").checked, chu: $("wc_chu").value, do_dam: Number($("wc_dam").value), kieu: $("wc_kieu").value, goc: Number($("wc_goc").value), mau, trang: $("wc_trang").value };
     o.watermark_anh = { bat: $("wh_bat").checked, do_dam: Number($("wh_dam").value), kieu: $("wh_kieu").value, rong_pct: Number($("wh_rong").value), tach_nen: $("wh_tach").checked, trang: $("wh_trang").value };
-    o.chu_ky = { bat: $("pk_bat").checked, trang: $("pk_trang").value, x_pct: Number($("pk_x").value), y_pct: Number($("pk_y").value), rong_mm: Number($("pk_rong").value), do_dam: Number($("pk_dam").value), tach_nen: true };
+    o.chu_ky = { bat: $("pk_bat").checked, trang: $("pk_trang").value, x_pct: Number($("pk_x").value), y_pct: Number($("pk_y").value), rong_mm: Number($("pk_rong").value), do_dam: Number($("pk_dam").value), tach_nen: true, quyen_han: $("pk_qh").value.trim(), chuc_vu: $("pk_cv").value.trim(), ho_ten: $("pk_ten").value.trim() };
     o.con_dau = { bat: $("pd_bat").checked, trang: $("pd_trang").value, x_pct: Number($("pd_x").value), y_pct: Number($("pd_y").value), duong_kinh_mm: Number($("pd_rong").value), do_dam: Number($("pd_dam").value), tach_nen: true };
     for (const [id, ten] of [["wh_file", "wm_anh"], ["pk_file", "ky_anh"], ["pd_file", "dau_anh"]]) { const g = $(id).files[0]; if (g) tep.push([ten, await g.arrayBuffer()]); }
     if (o.watermark_anh.bat && !$("wh_file").files[0]) throw new Error("Đã bật watermark hình nhưng chưa chọn ảnh.");
-    if (o.chu_ky.bat && !$("pk_file").files[0]) throw new Error("Đã bật chữ ký nhưng chưa chọn ảnh chữ ký.");
+    if (o.chu_ky.bat && !$("pk_file").files[0] && !(o.chu_ky.quyen_han || o.chu_ky.chuc_vu || o.chu_ky.ho_ten)) throw new Error("Đã bật chữ ký nhưng chưa chọn ảnh và chưa nhập chức vụ, họ tên.");
     if (o.con_dau.bat && !$("pd_file").files[0]) throw new Error("Đã bật con dấu nhưng chưa chọn ảnh con dấu.");
+    o.so_trang = { bat: $("st_bat").checked, vi_tri: $("st_vt").value, dinh_dang: $("st_dd").value, tu_trang: Number($("st_tu").value) || 1, bat_dau_so: $("st_so").value.trim() === "" ? "" : Number($("st_so").value), co_chu_pt: Number($("st_co").value) || 13, trang: "tat_ca" };
     o.thong_tin = { tieu_de: $("pdf_tieu_de").value, tac_gia: $("pdf_tac_gia").value };
     o.dang_anh = $("pdf_anh").checked; o.dpi = Number($("pdf_dpi").value); o.chat_luong = Number($("pdf_cl").value); o.den_trang = $("pdf_den_trang").checked;
     if (o.dang_anh) {

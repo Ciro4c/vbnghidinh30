@@ -8,7 +8,8 @@ from datetime import date
 
 from docx import Document
 from docx.enum.section import WD_ORIENT, WD_SECTION
-from docx.enum.text import WD_LINE_SPACING
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.text import WD_LINE_SPACING, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Mm, Pt
@@ -17,7 +18,8 @@ from .. import ban_quyen
 from ..anh_ky import LoiAnh, chuan_bi, png_bytes
 from ..hinh import giai_ma
 from ..profile import DEFAULT_PROFILE, ap_dung_tuy_chinh, load_profile
-from ..schemas import TEN_LOAI, CongVan
+from ..loai_vb import ten_in
+from ..schemas import CongVan
 from .common import (ALIGN, add_page_number, bottom_border, cant_split,
                      lap_hang_tieu_de, make_data_table, make_table, set_run_font,
                      text_width_mm, tinh_do_rong_cot, to_nen_o)
@@ -59,11 +61,17 @@ def chuan_hoa_danh_sach(items: list[str]) -> list[str]:
 RE_GIUA = re.compile(r"^(QUYẾT ĐỊNH|QUYẾT NGHỊ|NGHỊ QUYẾT|QUY ĐỊNH)\s*:$")
 RE_DIEU = re.compile(r"^(Điều\s+\d+[a-zA-Z]?\s*\.)\s*(.*)$")
 RE_CAN_CU = re.compile(r"^Căn cứ\b")
-RE_CHUONG = re.compile(r"^(Chương|CHƯƠNG)\s+([IVXLC]+|\d+)\s*[.:]?\s*(.*)$")
+RE_CHUONG = re.compile(r"^(Chương|CHƯƠNG|Phần|PHẦN)\s+([IVXLC]+|\d+)\s*[.:]?\s*(.*)$")
 RE_MUC_ND = re.compile(r"^(Mục|MỤC)\s+(\d+)\s*[.:]?\s*(.*)$")
 
 
+# Tiêu đề đứng riêng một dòng (in hoa): hiện trong khung điều hướng, có thể ngắt trang trước (profile.ngat_trang)
+RE_TIEU_DE_RIENG = re.compile(r"^(MỤC LỤC|LỜI NÓI ĐẦU|LỜI MỞ ĐẦU|LỜI CẢM ƠN|LỜI GIỚI THIỆU|MỞ ĐẦU|PHỤ LỤC(?:\s+[\w\dIVXLC.\-]+)?|"
+                              r"TÀI LIỆU THAM KHẢO|DANH MỤC[^|]{0,80}|KẾT LUẬN(?: VÀ KIẾN NGHỊ)?)\s*:?$", re.I)
+# Dòng của mục lục gõ tay: "Chương I. Tổng quan ........ 3" (dẫn chấm hoặc tab rồi số trang) - không phải đề mục
+RE_DONG_MUC_LUC = re.compile(r"^(.*?\S)\s*(?:\.{3,}|…{2,}|\t+)\s*(\d{1,4})\s*$")
 RE_HINH = re.compile(r"^\[\[hinh:(\w+)\]\]$")
+MUC_LUC = "[[muc-luc]]"            # mục lục tự động (trường TOC của Word, cập nhật khi mở file)
 NGAT_TRANG = "[[ngat-trang]]"          # ngắt trang (giữa các biểu mẫu trong phụ lục)
 KHONG_VIEN = "[[khong-vien]]"          # dòng đứng ngay trước một bảng: bảng không viền (khối ký)
 RE_HINH_TRONG = re.compile(r"(\[\[hinh:\w+\]\])")
@@ -128,8 +136,16 @@ def parse_noi_dung(text: str) -> list[tuple[str, str]]:
         m = RE_HINH.match(s)
         if m:
             blocks.append(("hinh", m.group(1)))
+        elif RE_DONG_MUC_LUC.match(s):
+            blocks.append(("muc_luc", s))
         elif (tieu_de := doan_tieu_de(s)) is not None:
             blocks.append(("chuong", tieu_de))
+        elif s == MUC_LUC:
+            blocks.append(("muc_luc_tu_dong", ""))
+        elif s.startswith("#### "):
+            blocks.append(("tieu_muc3", s[5:].strip()))
+        elif s.startswith("### "):
+            blocks.append(("tieu_muc2", s[4:].strip()))
         elif s.startswith("## "):
             blocks.append(("tieu_muc", s[3:].strip()))
         elif s.startswith("# "):
@@ -140,6 +156,8 @@ def parse_noi_dung(text: str) -> list[tuple[str, str]]:
             blocks.append(("giua", s[2:].strip()))
         elif RE_GIUA.match(s):
             blocks.append(("giua", s))
+        elif RE_TIEU_DE_RIENG.match(s):
+            blocks.append(("tieu_de", s.rstrip(":").strip()))
         elif RE_DIEU.match(s):
             blocks.append(("dieu", s))
         elif RE_CAN_CU.match(s):
@@ -183,6 +201,7 @@ class CongVanBuilder:
             zoom.set(qn("w:percent"), "100")
         self._used_cells: set = set()
         self._ngang = False            # đang dựng phần giấy nằm ngang (phụ lục)
+        self._map_cap: dict = {}
         self._trong_phu_luc = False    # đang dựng phụ lục (bảng dùng cỡ chữ nhỏ hơn)
         self._ngat_cho = False         # có ngắt trang chờ áp cho đoạn kế tiếp
         self.tp = {k: bool(v) for k, v in prof.get("thanh_phan", {}).items()}     # thành phần thể thức bật/tắt
@@ -206,7 +225,7 @@ class CongVanBuilder:
 
     def _p(self, container, text="", *, size, bold=False, italic=False,
            align="left", before=0, after=0, line=1.0, exact=None,
-           first=None, left=None, right=None, keep_next=False, underline=False):
+           first=None, left=None, right=None, keep_next=False, underline=False, md=False):
         p = self._next_par(container)
         pf = p.paragraph_format
         p.alignment = ALIGN[align]
@@ -229,8 +248,275 @@ class CongVanBuilder:
             pf.page_break_before = True
             self._ngat_cho = False
         if text:
-            self._run(p, text, size, bold, italic, underline)
+            if md:
+                self._runs_md(p, text, size, bold, italic, underline)
+            else:
+                self._run(p, text, size, bold, italic, underline)
         return p
+
+    _RE_MD = re.compile(r"(\*\*\*(?=\S).+?(?<=\S)\*\*\*|\*\*(?=\S).+?(?<=\S)\*\*|\*(?=[^\s*]).+?(?<=[^\s*])\*)")
+
+    def _runs_md(self, p, text, size, bold=False, italic=False, underline=False):
+        """Chữ có đánh dấu **đậm**, *nghiêng*, ***đậm nghiêng*** (\\* là dấu sao thật)."""
+        t = text.replace("\\*", "\ue000")
+        for tok in self._RE_MD.split(t):
+            if not tok:
+                continue
+            b, i = bold, italic
+            if tok.startswith("***") and tok.endswith("***") and len(tok) > 6:
+                tok, b, i = tok[3:-3], True, True
+            elif tok.startswith("**") and tok.endswith("**") and len(tok) > 4:
+                tok, b = tok[2:-2], True
+            elif tok.startswith("*") and tok.endswith("*") and len(tok) > 2:
+                tok, i = tok[1:-1], True
+            self._run(p, tok.replace("\ue000", "*"), size, b, i, underline)
+
+    # 5 cấp cố định cho mọi thể thức: Heading 1..5 (tên gốc của Word); tên riêng từng thể thức hiện sau dấu phẩy
+    # (vd "Heading 2,Chương"). Cấp 1 Phần, 2 Chương (Phụ lục, Mục lục, Lời nói đầu), 3 Mục, 4 Điều, 5 Khoản.
+    TEN_HEADING = ["Phần", "Chương", "Mục", "Điều", "Khoản"]
+
+    # Định dạng mặc định từng cấp: căn lề, đậm/nghiêng, cỡ chữ (None = cỡ văn bản), cách đoạn (None = như văn bản), thụt dòng đầu.
+    DD_HEADING = {
+        1: dict(align="center", bold=True, italic=False, size=None, before=12, after=6, first=False),
+        2: dict(align="center", bold=True, italic=False, size=None, before=12, after=6, first=False),
+        3: dict(align="justify", bold=True, italic=False, size=None, before=None, after=None, first=True),
+        4: dict(align="justify", bold=True, italic=False, size=None, before=None, after=None, first=True),
+        5: dict(align="justify", bold=False, italic=True, size=None, before=None, after=None, first=True),
+    }
+
+    def _dd_heading(self, i: int) -> dict:
+        """Định dạng cấp i của thể thức: mặc định DD_HEADING, ghi đè bằng khóa `heading_dinh_dang` {cấp: {...}} trong profile."""
+        b = self.prof["body"]
+        d = dict(self.DD_HEADING[i])
+        d.update(((self.prof.get("heading_dinh_dang") or {}).get(i)) or {})
+        d["size"] = d["size"] or b["size_pt"]
+        d["before"] = b["space_before_pt"] if d["before"] is None else d["before"]
+        d["after"] = b["space_after_pt"] if d["after"] is None else d["after"]
+        return d
+
+    def _tao_heading(self):
+        """Dựng đủ Heading 1..5 theo thể thức: tên + bí danh, cấp điều hướng cố định, định dạng đúng từng thể thức
+        (căn lề, cỡ chữ, đậm/nghiêng, cách đoạn) — đoạn dùng kiểu này có định dạng trùng với kiểu."""
+        from docx.shared import RGBColor
+        ten = list(self.prof.get("ten_heading") or [])
+        ten = (ten + self.TEN_HEADING[len(ten):])[:5]
+        styles = self.doc.styles
+        b = self.prof["body"]
+        for i in range(1, 6):
+            try:
+                st = styles[f"Heading {i}"]
+                el = st.element
+                for c in list(el):
+                    if c.tag != qn("w:name"):
+                        el.remove(c)
+            except KeyError:
+                st = styles.add_style(f"Heading {i}", WD_STYLE_TYPE.PARAGRAPH)
+                el = st.element
+            el.set(qn("w:styleId"), f"Heading{i}")
+            nm = el.find(qn("w:name"))
+            nm.set(qn("w:val"), f"heading {i}")
+            al = OxmlElement("w:aliases")
+            al.set(qn("w:val"), ten[i - 1])
+            nm.addnext(al)
+            d = self._dd_heading(i)
+            st.base_style = styles["Normal"]
+            st.next_paragraph_style = styles["Normal"]
+            st.quick_style = True
+            pf = st.paragraph_format
+            pf.keep_with_next = True
+            pf.alignment = ALIGN[d["align"]]
+            pf.space_before, pf.space_after = Pt(d["before"]), Pt(d["after"])
+            if b.get("line_exact_pt"):
+                pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+                pf.line_spacing = Pt(b["line_exact_pt"])
+            else:
+                pf.line_spacing = b["line_spacing"]
+            pf.first_line_indent = Cm(b["first_line_indent_cm"]) if d["first"] else Cm(0)
+            ol = OxmlElement("w:outlineLvl")
+            ol.set(qn("w:val"), str(i - 1))
+            el.get_or_add_pPr().append(ol)
+            st.font.name = self.font
+            st.font.size = Pt(d["size"])
+            st.font.bold, st.font.italic = d["bold"], d["italic"]
+            st.font.color.rgb = RGBColor(0, 0, 0)
+
+    def _cap(self, p, cap: int):
+        """Gán đề mục theo cấp 1..5 (xem TEN_HEADING) và đồng bộ định dạng đoạn với kiểu của cấp đó."""
+        cap = max(1, min(5, cap))
+        d = self._dd_heading(cap)
+        p.style = self.doc.styles[f"Heading {cap}"]
+        b = self.prof["body"]
+        pf = p.paragraph_format
+        p.alignment = ALIGN[d["align"]]
+        pf.space_before, pf.space_after = Pt(d["before"]), Pt(d["after"])
+        pf.first_line_indent = Cm(b["first_line_indent_cm"]) if d["first"] else Cm(0)
+        for r in p.runs:
+            r.font.size = Pt(d["size"])
+            r.font.bold, r.font.italic = d["bold"], d["italic"]
+
+    def _quet_cap(self):
+        """Dò các đề mục thật sự dùng trong văn bản: (1) dồn cấp thành liên tục 1..n; (2) lập danh sách đề mục kèm số trang
+        ước lượng cho mục lục tự động (Word tính lại số trang chính xác khi mở file)."""
+        pg, m = self.prof["page"], self.prof["margins_mm"]
+        cao = (pg["height_mm"] - m["top"] - m["bottom"]) * 72 / 25.4          # chiều cao vùng chữ (pt)
+        rong = pg["width_mm"] - m["left"] - m["right"]
+        b = self.prof["body"]
+        dong_cao = b["size_pt"] * b["line_spacing"] * 1.17
+        nt = self.prof.get("ngat_trang") or {}
+        khoi = []
+        for nd in (self.d.noi_dung, self.d.phu_luc if self._on("phu_luc") else ""):
+            khoi.extend(parse_noi_dung(nd or ""))
+
+        def chay(toc_cao: float):
+            ds, dung = [], set()
+            y, trang, truoc_phan = cao * 0.28, 1, False                # phần đầu văn bản (quốc hiệu, tên loại...) chiếm khoảng 1/4 trang
+            for kind, text in khoi:
+                raw, hien = None, text
+                if kind == "chuong":
+                    dau = text.split("\n")[0].lower()
+                    raw = 1 if dau.startswith("phần") else 2 if dau.startswith("chương") else 3
+                    hien = " ".join(x.strip() for x in text.split("\n"))
+                elif kind in ("giua", "tieu_de"):
+                    raw = None if re.match(r"(?i)^mục lục$", text) else 2
+                elif kind in ("muc", "tieu_muc", "tieu_muc2", "tieu_muc3"):
+                    raw = {"muc": 3, "tieu_muc": 4, "tieu_muc2": 5, "tieu_muc3": 5}[kind]
+                elif kind == "dieu" and not (RE_DIEU.match(text) and RE_DIEU.match(text).group(2)
+                                             and (len(text) > 100 or text.endswith((".", ":", ";", ",")))):
+                    raw = 4
+                moi_trang = kind == "ngat" \
+                    or (kind == "chuong" and nt.get("chuong") and text.lower().startswith(("chương", "phần"))) \
+                    or (kind == "tieu_de" and nt.get("tieu_de") and re.match(nt["tieu_de"], text, re.I))
+                if moi_trang and kind == "chuong" and truoc_phan and not text.lower().startswith("phần"):
+                    moi_trang = False
+                truoc_phan = kind == "chuong" and text.lower().startswith("phần")
+                if moi_trang and y > 0:
+                    trang += 1
+                    y = 0.0
+                if kind == "muc_luc_tu_dong":
+                    y += toc_cao
+                elif kind in ("bang", "bang_kv"):
+                    y += (text.count("\n") + 1) * dong_cao * 1.3
+                elif kind == "hinh":
+                    y += 60 * 72 / 25.4
+                elif kind != "ngat":
+                    ch = text.replace("\n", " ")
+                    so_dong = max(1, int(text_width_mm(ch[:600], b["size_pt"], kind in ("chuong", "giua", "dieu", "muc")) / max(rong - 4, 20) + 0.999))
+                    y += so_dong * dong_cao + b["space_after_pt"] + (6 if raw else 0)
+                while y > cao:
+                    trang += 1
+                    y -= cao
+                if raw:
+                    dung.add(raw)
+                    ds.append((raw, hien, trang))
+            return ds, dung
+
+        ds, dung = chay(0.0)
+        if any(k == "muc_luc_tu_dong" for k, _ in khoi) and ds:
+            ds, dung = chay(len(ds) * (b["size_pt"] * 1.17 + 2) + 24)         # tính lại khi đã biết chiều cao mục lục
+        self._ds_dm = ds
+        self._map_cap = {raw: raw for raw in dung}
+
+    def _muc_luc_tu_dong(self, common):
+        """Mục lục tự động: trường TOC của Word (cấp theo kiểu đề mục), đã điền sẵn các dòng; Word cập nhật số trang khi mở file."""
+        ds = getattr(self, "_ds_dm", [])
+        if not ds:
+            return
+        sz = common["size"]
+        styles = self.doc.styles
+        rong_mm = self._be_rong_chu_mm()
+        w = self.prof["page"]
+        moc = sorted(self._map_cap)
+        cap_cua = {raw: raw for raw in moc}
+        for muc in range(1, 6):                              # kiểu "toc 1".."toc 5" (tên kiểu có sẵn của Word)
+            ten = f"toc {muc}"
+            if ten not in [x.name for x in styles]:
+                st = styles.add_style(ten, WD_STYLE_TYPE.PARAGRAPH)
+                st.element.set(qn("w:styleId"), f"TOC{muc}")
+                st.base_style = styles["Normal"]
+                st.next_paragraph_style = styles["Normal"]
+                pf = st.paragraph_format
+                pf.left_indent = Cm(0.6 * (muc - 1))
+                pf.space_before = Pt(0)
+                pf.space_after = Pt(2)
+                pf.tab_stops.add_tab_stop(Mm(rong_mm), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
+        n = len(ds)
+        for k, (raw, text, trang) in enumerate(ds):
+            lv = min(cap_cua.get(raw, 1), 5)
+            p = self._p(self.doc, size=sz, align="left", before=0, after=2, line=1.0)
+            p.style = styles[f"toc {lv}"]
+            if k == 0:
+                for kind, extra in (("begin", {qn("w:dirty"): "true"} if self.prof.get("cap_nhat_muc_luc") else {}), ("instr", None), ("separate", None)):
+                    r = p.add_run()
+                    if kind == "instr":
+                        it = OxmlElement("w:instrText")
+                        it.set(qn("xml:space"), "preserve")
+                        it.text = ' TOC \\o "1-5" \\h \\z \\u '
+                        r._r.append(it)
+                    else:
+                        fc = OxmlElement("w:fldChar")
+                        fc.set(qn("w:fldCharType"), kind)
+                        for a, v in (extra or {}).items():
+                            fc.set(a, v)
+                        r._r.append(fc)
+            self._run(p, f"{text}\t{trang}", sz)
+            if k == n - 1:
+                r = p.add_run()
+                fc = OxmlElement("w:fldChar")
+                fc.set(qn("w:fldCharType"), "end")
+                r._r.append(fc)
+        if not self.prof.get("cap_nhat_muc_luc"):              # mặc định không bật hộp thoại "update fields" khi mở file
+            return
+        try:                                                   # Word hỏi cập nhật trường khi mở file để số trang đúng
+            st = self.doc.settings.element
+            if st.find(qn("w:updateFields")) is None:
+                uf = OxmlElement("w:updateFields")
+                uf.set(qn("w:val"), "true")
+                st.append(uf)
+        except Exception:
+            pass
+
+    def _don_style(self):
+        """Xóa các kiểu (style) không dùng trong tài liệu (Heading 1-9, Title, List..., bảng mẫu...), giữ kiểu gốc cần thiết."""
+        che_do = self.prof.get("don_style", "thua")
+        che_do = {True: "thua", False: "giu"}.get(che_do, che_do)
+        if che_do == "giu":
+            return
+        ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+        goc = [self.doc.element]
+        for sec in self.doc.sections:
+            for hf in (sec.header, sec.footer, sec.first_page_header, sec.first_page_footer):
+                try:
+                    goc.append(hf._element)
+                except Exception:
+                    pass
+        dung = set()
+        for g in goc:
+            for tag in ("pStyle", "rStyle", "tblStyle"):
+                for e in g.iter(f"{ns}{tag}"):
+                    dung.add(e.get(f"{ns}val"))
+        st_el = self.doc.styles.element
+        theo_id = {e.get(f"{ns}styleId"): e for e in st_el.findall(f"{ns}style")}
+        giu = set(dung)
+        for e in theo_id.values():                       # kiểu mặc định + kiểu do ứng dụng tạo
+            ten = e.find(f"{ns}name").get(f"{ns}val") if e.find(f"{ns}name") is not None else ""
+            if e.get(f"{ns}default") == "1" or (che_do == "thua" and re.fullmatch(r"(?i)heading [1-5]", ten)) or ten in ("Normal", "Header", "Footer", "Table Grid", "Default Paragraph Font", "Normal Table", "No List"):
+                giu.add(e.get(f"{ns}styleId"))
+        xong = False
+        while not xong:                                  # đóng gói theo basedOn/next/link
+            xong = True
+            for sid in list(giu):
+                e = theo_id.get(sid)
+                if e is None:
+                    continue
+                for tag in ("basedOn", "next", "link"):
+                    c = e.find(f"{ns}{tag}")
+                    if c is not None and c.get(f"{ns}val") not in giu and c.get(f"{ns}val") in theo_id:
+                        giu.add(c.get(f"{ns}val")); xong = False
+        for sid, e in theo_id.items():
+            if sid not in giu:
+                st_el.remove(e)
+        for e in st_el.findall(f"{ns}latentStyles"):     # bỏ danh sách kiểu tiềm ẩn (Word vẫn tự dựng khi cần)
+            st_el.remove(e)
 
     def _run(self, p, text, size, bold=False, italic=False, underline=False):
         r = p.add_run(text)
@@ -268,7 +554,7 @@ class CongVanBuilder:
         rpr.append(lang)
 
         cp = self.doc.core_properties
-        cp.title = f"{TEN_LOAI[self.d.loai_van_ban] or 'Công văn'} {self.d.so}/{self.d.ky_hieu}".strip(" /")
+        cp.title = f"{ten_in(self.prof, self.d.loai_van_ban) or 'Công văn'} {self.d.so}/{self.d.ky_hieu}".strip(" /")
         cp.language = "vi-VN"
         cp.comments = ban_quyen.GHI_CHU
 
@@ -333,7 +619,7 @@ class CongVanBuilder:
     # ---- tên loại + trích yếu (quyết định, tờ trình, thông báo...) ----
     def _ten_loai(self):
         d = self.d
-        ten = TEN_LOAI[d.loai_van_ban]
+        ten = ten_in(self.prof, d.loai_van_ban)
         if ten is None:
             return
         t = self.prof["title_block"]
@@ -388,11 +674,13 @@ class CongVanBuilder:
         b = self.prof["body"]
         sz = b["size_pt"]
         last = None
-        for kind, text in parse_noi_dung(noi_dung):
+        for so_khoi, (kind, text) in enumerate(parse_noi_dung(noi_dung)):
             common = dict(size=sz, before=b["space_before_pt"], after=b["space_after_pt"],
                           line=b["line_spacing"])
             if b.get("line_exact_pt"):
                 common["exact"] = b["line_exact_pt"]
+            if kind != "chuong":
+                self._truoc_la_phan = False
             if kind == "ngat":
                 self._ngat_cho = True
                 last = None
@@ -402,14 +690,39 @@ class CongVanBuilder:
             elif kind == "hinh":
                 self._khoi_hinh(text)
                 last = None
+            elif kind == "muc_luc_tu_dong":
+                self._muc_luc_tu_dong(common)
+                last = None
+            elif kind == "muc_luc":                       # dòng mục lục gõ tay: tên ... số trang (dẫn chấm, căn phải)
+                m = RE_DONG_MUC_LUC.match(text)
+                last = self._p(self.doc, **{**common, "before": 0, "after": 2})
+                self._run(last, m.group(1) + "\t" + m.group(2), sz)
+                last.paragraph_format.tab_stops.add_tab_stop(Mm(self._be_rong_chu_mm()), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS)
             elif kind == "chuong":                       # "Chương I" + tên chương, "Mục 1." + tên mục
                 phan = text.split("\n")
-                for k, t in enumerate(phan):
-                    last = self._p(self.doc, t, bold=True, align="center", keep_next=True,
-                                   **{**common, "before": 12 if k == 0 else 0, "after": 6 if k == len(phan) - 1 else 0})
-            elif kind == "giua":
+                nt = self.prof.get("ngat_trang") or {}
+                la_chuong = phan[0].lower().startswith(("chương", "phần"))
+                sau_phan = getattr(self, "_truoc_la_phan", False)
+                if nt.get("chuong") and la_chuong and not sau_phan and (so_khoi > 0 or not self._trong_phu_luc):
+                    self._ngat_cho = True
+                self._truoc_la_phan = phan[0].lower().startswith("phần")
+                last = self._p(self.doc, phan[0], bold=True, align="center", keep_next=True,
+                               **{**common, "before": 12, "after": 6 if len(phan) == 1 else 0})
+                if len(phan) > 1:                         # một đoạn, xuống dòng mềm: khung điều hướng hiện đủ "Chương I - TÊN"
+                    last.add_run().add_break()
+                    self._run(last, phan[1], sz, bold=True)
+                    last.paragraph_format.space_after = Pt(6)
+                self._cap(last, 1 if phan[0].lower().startswith("phần") else 2 if phan[0].lower().startswith("chương") else 3)
+            elif kind in ("giua", "tieu_de"):
+                self._truoc_la_phan = False
+                nt = self.prof.get("ngat_trang") or {}
+                if kind == "tieu_de" and nt.get("tieu_de") and re.match(nt["tieu_de"], text, re.I) \
+                        and (so_khoi > 0 or not self._trong_phu_luc):
+                    self._ngat_cho = True
                 last = self._p(self.doc, text, bold=True, align="center", keep_next=True,
                                **{**common, "before": 12, "after": 6})
+                if not re.match(r"(?i)^mục lục$", text):            # "Mục lục" không tự liệt kê chính nó trong mục lục
+                    self._cap(last, 2)
             elif kind == "dieu":
                 m = RE_DIEU.match(text)
                 head, rest = m.group(1), m.group(2)
@@ -421,14 +734,20 @@ class CongVanBuilder:
                     self._run(last, " " + rest, sz)
                 else:
                     self._run(last, text, sz, bold=True)
+                    self._cap(last, 4)
             else:
                 style = {
                     "muc": dict(bold=True, keep_next=True),
                     "tieu_muc": dict(bold=True, italic=True, keep_next=True),
+                    "tieu_muc2": dict(italic=True, keep_next=True),
+                    "tieu_muc3": dict(keep_next=True),
                     "can_cu": dict(italic=True),
                 }.get(kind, {})
-                last = self._p(self.doc, text, align="justify",
+                last = self._p(self.doc, text, align="left" if re.search(r"[….]{8,}", text) else "justify",
+                               md=kind in ("doan", "gach", "can_cu"),
                                first=Cm(b["first_line_indent_cm"]), **common, **style)
+                if kind in ("muc", "tieu_muc", "tieu_muc2", "tieu_muc3"):
+                    self._cap(last, {"muc": 3, "tieu_muc": 4, "tieu_muc2": 5, "tieu_muc3": 5}[kind])
         return last
 
     # ---- bảng và hình trong nội dung ----
@@ -467,25 +786,36 @@ class CongVanBuilder:
     def _noi_o(self, cell, text, rong_mm, dam):
         tb = self.prof["table"]
         sz = self._co_chu_bang()
+        can = None
+        for dau, kieu in (("[[giua]]", "center"), ("[[phai]]", "right")):   # canh lề của ô theo file gốc
+            if text.startswith(dau):
+                text, can = text[len(dau):], kieu
         for manh in re.split(r"<br\s*/?>", text):
             for tok in RE_HINH_TRONG.split(manh):
                 tok = tok.strip()
                 if not tok:
                     continue
                 m = RE_HINH.match(tok)
-                if m:
+                if tok == "[[dong-trong]]":
+                    self._p(cell, size=sz, before=tb["space_pt"], after=tb["space_pt"], line=1.0)
+                elif m:
                     p = self._p(cell, size=sz, align="center", before=tb["space_pt"], after=tb["space_pt"])
                     if not self._chen_hinh(p, m.group(1), max(rong_mm - 3, 5), self.prof["image"]["max_height_mm"]):
                         p._p.getparent().remove(p._p)
                 else:
                     ngan_so = len(tok) <= 4 and tok.replace(".", "").isdigit()
-                    self._p(cell, tok, size=sz, bold=dam, align="center" if (dam or ngan_so) else "left",
-                            before=tb["space_pt"], after=tb["space_pt"], line=1.0)
+                    self._p(cell, tok, size=sz, bold=dam, align=can or ("center" if (dam or ngan_so) else "left"),
+                            before=tb["space_pt"], after=tb["space_pt"], line=1.0, md=True)
 
     def _khoi_bang(self, text, vien: bool = True):
         rows, tieu_de = parse_bang(text)
         if not rows:
             return
+        try:                                         # bảng liền sau bảng khác: chèn đoạn đệm kẻo Word/LibreOffice dính hai bảng
+            if self.doc.element.body[-2].tag.endswith("}tbl") or self.doc.element.body[-1].tag.endswith("}tbl"):
+                self._p(self.doc, size=4, before=0, after=0, exact=6)
+        except Exception:
+            pass
         tb = self.prof["table"]
         nr, nc = len(rows), len(rows[0])
         rong = tinh_do_rong_cot(rows, self._be_rong_chu_mm(), tb["min_col_mm"],
@@ -643,6 +973,8 @@ class CongVanBuilder:
 
     def build(self) -> Document:
         self._setup()
+        self._tao_heading()
+        self._quet_cap()
         self._the_thuc_dau()
         self._ten_loai()
         self._kinh_gui()
@@ -653,6 +985,7 @@ class CongVanBuilder:
         if self._on("so_trang"):
             add_page_number(self.doc.sections[0], self.font, pn["size_pt"],
                             show_first_page=self.d.hien_so_trang_dau)
+        self._don_style()
         return self.doc
 
 

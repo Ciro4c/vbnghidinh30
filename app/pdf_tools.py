@@ -160,6 +160,41 @@ _RE_THE_THUC = {
 }
 
 
+_RE_SO_TRANG = re.compile(r"^(?:[-–—]\s*)?(?:Trang\s*)?(\d{1,4})(?:\s*/\s*\d{1,4})?(?:\s*[-–—])?$", re.I)
+
+
+def kiem_tra_so_trang(trang_van_ban: list[str]) -> dict:
+    """Dò số trang đang có trong lớp chữ: ở đầu hay cuối trang, có liên tục không, trang 1 có hiện số không."""
+    n = len(trang_van_ban)
+    thay = []                                       # (trang, so, vi_tri)
+    for i, t in enumerate(trang_van_ban):
+        dong = [x.strip() for x in t.split("\n") if x.strip()]
+        if not dong:
+            continue
+        cand = [(0, "dau"), (1, "dau"), (len(dong) - 1, "cuoi"), (len(dong) - 2, "cuoi")]
+        for k, vt in sorted(cand, key=lambda c: (c[1] == "dau" and len(dong) > 1 and c[0] >= len(dong) - 1)):
+            if 0 <= k < len(dong):
+                m = _RE_SO_TRANG.match(dong[k])
+                if m:
+                    # dòng cuối (khác dòng đầu) thì tính là cuối trang
+                    vt2 = "cuoi" if (k == len(dong) - 1 and len(dong) > 1) else vt
+                    thay.append((i + 1, int(m.group(1)), vt2))
+                    break
+    out = {"co_so": len(thay), "tong_trang": n, "vi_tri": "", "lien_tuc": None, "trang_1_co_so": False, "ghi_chu": []}
+    if not thay:
+        out["ghi_chu"].append("Chưa thấy số trang trong lớp chữ.")
+        return out
+    out["vi_tri"] = "đầu trang" if sum(1 for x in thay if x[2] == "dau") >= len(thay) / 2 else "cuối trang"
+    out["trang_1_co_so"] = any(x[0] == 1 for x in thay)
+    lech = {x[1] - x[0] for x in thay}
+    out["lien_tuc"] = len(lech) == 1
+    if not out["lien_tuc"]:
+        out["ghi_chu"].append("Số trang không liên tục hoặc không khớp thứ tự trang (có thể có trang chèn thêm).")
+    if len(thay) < n - 1:
+        out["ghi_chu"].append(f"Chỉ thấy số trang ở {len(thay)}/{n} trang.")
+    return out
+
+
 def kiem_tra_the_thuc(trang_van_ban: list[str], prof: dict, thanh_phan: dict | None = None,
                       kich_thuoc: tuple[float, float] | None = None) -> list[dict]:
     """Danh sách kiểm tra: mỗi thành phần thể thức đang được chọn có xuất hiện trong văn bản không.
@@ -248,6 +283,11 @@ def phan_tich(data: bytes, profile: str = DEFAULT_PROFILE, thanh_phan: dict | No
         "bookmark_goi_y": goi_y_bookmark(van_ban, prof) if co_chu else [],
         "ky_tu_la": phat_hien_ky_tu_la(van_ban) if co_chu else [],
         "kiem_tra_the_thuc": kiem_tra_the_thuc(van_ban, prof, thanh_phan, kt),
+        "so_trang_hien_co": kiem_tra_so_trang(van_ban) if co_chu else None,
+        "so_trang_mac_dinh": {"vi_tri": prof.get("page_number", {}).get("vi_tri", "tren_giua"),
+                              "dinh_dang": prof.get("page_number", {}).get("dinh_dang", "{n}"),
+                              "tu_trang": int(prof.get("page_number", {}).get("tu_trang", 2)),
+                              "co_chu_pt": float(prof.get("page_number", {}).get("size_pt", 13))},
         "le_trang_1": uoc_luong_le(r, 0) if co_chu else None,
         "canh_bao": [],
     }
@@ -326,17 +366,85 @@ def dung_lop_watermark(cfg: dict, loai: str, W: int, H: int, px_mm: float, tep: 
     return lop
 
 
+def _khoi_chu_ky(im: Image.Image | None, w_mm: float, dong_tren: list[str], ho_ten: str, co_pt: float = 13.0) -> tuple[Image.Image, float]:
+    """Ghép khối chữ ký đúng bố cục NĐ 30: quyền hạn/chức vụ (in hoa, đậm) - khoảng ký (ảnh chữ ký) - họ tên (đậm).
+    Nền trong suốt; trả về (ảnh RGBA, bề rộng mm)."""
+    from PIL import ImageDraw, ImageFont
+    from .renderers.common import _load_font          # cùng phông Liberation Serif đóng gói sẵn
+    PX = 12.0                                          # điểm ảnh / mm (≈ 300 dpi)
+    cao_chu = int(co_pt * 25.4 / 72 * PX)
+    f0 = _load_font(True)
+    font = ImageFont.truetype(f0.path, cao_chu) if f0 is not None else ImageFont.load_default()
+    dong = [t for t in dong_tren if t.strip()]
+    anh_w = int(w_mm * PX)
+    anh_h = int(im.height * anh_w / im.width) if im is not None else int(18 * PX)
+    rong_chu = max([int(font.getlength(t)) for t in dong + [ho_ten] if t.strip()] or [0])
+    W = max(anh_w, rong_chu) + 8
+    gian = int(cao_chu * 1.25)
+    H = len(dong) * gian + anh_h + (gian if ho_ten.strip() else 0) + 8
+    out = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(out)
+    y = 2
+    for t in dong:
+        d.text(((W - font.getlength(t)) / 2, y), t, font=font, fill=(0, 0, 0, 255))
+        y += gian
+    if im is not None:
+        out.alpha_composite(im.resize((anh_w, anh_h), Image.LANCZOS), ((W - anh_w) // 2, y))
+    y += anh_h
+    if ho_ten.strip():
+        d.text(((W - font.getlength(ho_ten)) / 2, y), ho_ten, font=font, fill=(0, 0, 0, 255))
+    return out, W / PX
+
+
 def chuan_bi_dau(cfg: dict, khoa_tep: str, tep: dict, rong_mac_dinh_mm: float) -> tuple[Image.Image, float] | None:
-    """(ảnh chữ ký/mộc đã xử lý, bề rộng mm) hoặc None nếu không có ảnh."""
-    if khoa_tep not in tep:
+    """(ảnh chữ ký/mộc đã xử lý, bề rộng mm) hoặc None nếu không có ảnh.
+    Chữ ký có thể kèm quyền hạn / chức vụ / họ tên (cfg: quyen_han, chuc_vu, ho_ten): ghép thành một khối."""
+    chu = [str(cfg.get(k, "") or "") for k in ("quyen_han", "chuc_vu")]
+    ho_ten = str(cfg.get("ho_ten", "") or "")
+    co_chu = any(t.strip() for t in chu + [ho_ten])
+    if khoa_tep not in tep and not co_chu:
         return None
-    try:
-        im = anh_ky.chuan_bi(tep[khoa_tep], tach_nen=bool(cfg.get("tach_nen", True)),
-                             do_dam=float(cfg.get("do_dam", 100)), nhuom=str(cfg.get("nhuom", "")))
-    except anh_ky.LoiAnh as e:
-        raise LoiPdf(str(e)) from e
+    im = None
     w = float(cfg.get("duong_kinh_mm") or cfg.get("rong_mm") or rong_mac_dinh_mm)
-    return im, max(5.0, min(w, 300.0))
+    w = max(5.0, min(w, 300.0))
+    if khoa_tep in tep:
+        try:
+            im = anh_ky.chuan_bi(tep[khoa_tep], tach_nen=bool(cfg.get("tach_nen", True)),
+                                 do_dam=float(cfg.get("do_dam", 100)), nhuom=str(cfg.get("nhuom", "")))
+        except anh_ky.LoiAnh as e:
+            raise LoiPdf(str(e)) from e
+    if co_chu:
+        return _khoi_chu_ky(im, w, [t.upper() for t in chu], ho_ten)
+    return im, w
+
+
+def _anh_so_trang(cfg: dict, i: int, n: int, Wmm: float, Hmm: float):
+    """Ảnh số trang của trang i (0-based) và vị trí (x_mm, y_mm, w_mm, h_mm); None nếu trang không đánh số."""
+    from PIL import ImageDraw, ImageFont
+    from .renderers.common import _load_font
+    tu = max(1, int(cfg.get("tu_trang", 1) or 1))
+    if i + 1 < tu:
+        return None
+    bat_dau = cfg.get("bat_dau_so")
+    so = int(bat_dau) + (i + 1 - tu) if str(bat_dau or "").strip() not in ("", "None") else i + 1
+    mau = str(cfg.get("dinh_dang") or "{n}")
+    chu = mau.replace("{n}", str(so)).replace("{tong}", str(n))
+    pt = max(6.0, min(float(cfg.get("co_chu_pt", 13) or 13), 24.0))
+    f0 = _load_font(False)
+    PX = 12.0
+    font = ImageFont.truetype(f0.path, int(pt * 25.4 / 72 * PX)) if f0 is not None else ImageFont.load_default()
+    w = int(font.getlength(chu)) + 6
+    h = int(pt * 25.4 / 72 * PX * 1.35) + 4
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    gray = int(str(cfg.get("mau", "000000")).lstrip("#")[:2] or "00", 16) if cfg.get("mau") else 0
+    ImageDraw.Draw(im).text((3, 2), chu, font=font, fill=(gray, gray, gray, 255))
+    w_mm, h_mm = w / PX, h / PX
+    le = float(cfg.get("le_mm", 10) or 10)
+    le_ngang = float(cfg.get("le_ngang_mm", 15) or 15)
+    vt = str(cfg.get("vi_tri", "tren_giua"))
+    x = (Wmm - w_mm) / 2 if vt.endswith("giua") else (Wmm - le_ngang - w_mm if vt.endswith("phai") else le_ngang)
+    y = le if vt.startswith("tren") else Hmm - le - h_mm
+    return im, max(0.0, x), max(0.0, y), w_mm, h_mm
 
 
 def vi_tri_dau(cfg: dict, w_mm: float, h_mm: float, trang_w_mm: float, trang_h_mm: float) -> tuple[float, float]:
@@ -492,13 +600,22 @@ def xu_ly_pdf(data: bytes, tuy_chon: dict, tep: dict[str, bytes] | None = None,
             ds_bm += goi_y_bookmark(van_ban, load_profile(bm_cfg.get("profile") or profile))
             ds_bm.sort(key=lambda x: (x["trang"],))
     ds_bm = [x for x in ds_bm if 1 <= x["trang"] <= n]
+    if bm_cfg.get("tu_dong") and not ds_bm:
+        canh_bao.append("Không dò được tiêu đề nào để làm dấu trang (PDF dạng ảnh hoặc chưa đúng thể thức đã chọn); hãy nhập tay ở mục Dấu trang.")
 
     wm_chu, wm_anh = o.get("watermark_chu"), o.get("watermark_anh")
     cfg_ky, cfg_dau = o.get("chu_ky"), o.get("con_dau")
+    cfg_st = o.get("so_trang")
     sel = {k: chon_trang((c or {}).get("trang", "tat_ca"), n) for k, c in
            (("wm_chu", wm_chu), ("wm_anh", wm_anh))}
     sel["ky"] = chon_trang((cfg_ky or {}).get("trang", "cuoi"), n)
     sel["dau"] = chon_trang((cfg_dau or {}).get("trang", "cuoi"), n)
+    sel["st"] = chon_trang((cfg_st or {}).get("trang", "tat_ca"), n)
+    if _bat(cfg_st):
+        hien = kiem_tra_so_trang(trich_van_ban(reader))
+        if hien and hien["co_so"] >= max(2, n // 2):
+            canh_bao.append(f"PDF đã có số trang ở {hien['co_so']}/{n} trang ({hien['vi_tri']}); đánh số thêm sẽ bị chồng. "
+                            "Nên bỏ số cũ trước hoặc chọn vị trí khác.")
     if _bat(wm_chu) and not str(wm_chu.get("chu", "")).strip():
         raise LoiPdf("Chưa nhập chữ watermark.")
     ky = chuan_bi_dau(cfg_ky, "ky_anh", tep, 38) if _bat(cfg_ky) else None
@@ -528,6 +645,10 @@ def xu_ly_pdf(data: bytes, tuy_chon: dict, tep: dict[str, bytes] | None = None,
             h_mm = w_mm * im.height / im.width
             x, y = vi_tri_dau(cfg, w_mm, h_mm, Wv * PT_MM, Hv * PT_MM)
             out.append((im, x, y, w_mm, h_mm))
+        if _bat(cfg_st):
+            st = _anh_so_trang(cfg_st, i, n, Wv * PT_MM, Hv * PT_MM)
+            if st is not None and i in sel["st"]:
+                out.append(st)
         return out
 
     # -------- dạng ảnh: dựng lại từng trang từ ảnh đã vẽ

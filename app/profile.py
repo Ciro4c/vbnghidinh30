@@ -21,11 +21,14 @@ _RE_TEN = re.compile(r"[a-z0-9_\-]+")
 _RE_MAU = re.compile(r"[0-9A-Fa-f]{6}")
 
 
+_THAY_THE = {"loai_van_ban"}          # khóa mà profile con thay hẳn, không trộn với profile cha
+
+
 def _gop(goc: dict, them: dict) -> dict:
     """Trộn sâu: `them` ghi đè `goc`."""
     out = copy.deepcopy(goc)
     for k, v in them.items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
+        if isinstance(v, dict) and isinstance(out.get(k), dict) and k not in _THAY_THE:
             out[k] = _gop(out[k], v)
         else:
             out[k] = copy.deepcopy(v)

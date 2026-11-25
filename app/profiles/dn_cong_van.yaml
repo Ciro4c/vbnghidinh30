@@ -1,0 +1,97 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Văn bản của doanh nghiệp (công văn, thông báo, quyết định, tờ trình, biên bản...).
+# LƯU Ý: pháp luật không bắt doanh nghiệp theo NĐ 30 (chỉ cơ quan nhà nước bắt buộc); đây là mẫu thông dụng, bố cục
+# lấy theo NĐ 30 để văn bản gửi ra ngoài trông chuẩn mực. Công ty có quy chế riêng thì chỉnh ở “Tùy chỉnh trình bày”
+# hoặc sao chép file này thành profile riêng.
+extends: nd30
+name: "Doanh nghiệp: công văn, thông báo, quyết định"
+loai: van_ban
+mo_ta: "Mẫu thông dụng cho công ty: tên công ty (in hoa, đậm), số ký hiệu dạng 12/2026/CV-ABC, chữ ký Giám đốc. Cỡ chữ 13, giãn dòng 1.15. Bỏ chọn Quốc hiệu và Tiêu ngữ nếu là văn bản nội bộ."
+
+thanh_phan:
+  quoc_hieu: true
+  tieu_ngu: true
+
+nhan_thanh_phan:
+  co_quan: "Tên công ty / đơn vị"
+  chu_ky: "Chữ ký (chức vụ, họ tên; có thể kèm mộc)"
+  noi_nhan: "Nơi nhận (phòng ban, đối tác)"
+
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ (gửi đối tác, cơ quan nhà nước)"
+    bat: {}
+  noi_bo:
+    ten: "Nội bộ công ty: bỏ quốc hiệu và tiêu ngữ"
+    bat: {quoc_hieu: false, tieu_ngu: false}
+  thong_bao_nhanh:
+    ten: "Thông báo nhanh: chỉ tên công ty, tiêu đề, nội dung, chữ ký"
+    bat: {quoc_hieu: false, tieu_ngu: false, so_ky_hieu: false, kinh_gui: false, noi_nhan: false}
+
+body:
+  size_pt: 13
+  line_spacing: 1.15
+
+ra_soat:
+  ky_hieu_theo_loai: false     # doanh nghiệp tự quy định ký hiệu (vd 12/2026/CV-ABC)
+  noi_nhan_luu_vt: false
+  trich_yeu_bat_buoc: false
+  trich_yeu_ve_viec: false
+
+form:
+  co_quan_chu_quan: "TẬP ĐOÀN / CÔNG TY MẸ (nếu có)"
+  co_quan_ban_hanh: "CÔNG TY TNHH ABC"
+  so: "12"
+  ky_hieu: "2026/CV-ABC"
+  dia_danh: "TP. Hồ Chí Minh"
+  quyen_han_ky: "TM. HỘI ĐỒNG THÀNH VIÊN"
+  chuc_vu_ky: "TỔNG GIÁM ĐỐC"
+  nguoi_ky: "Nguyễn Văn A"
+
+# Loại văn bản/tài liệu doanh nghiệp
+loai_van_ban:
+  cong_van: {}
+  thong_bao: {}
+  quyet_dinh:
+    muc: [{ten: "Điều 1", khop: 'điều\s*1\b'}, {ten: "Hiệu lực thi hành", khop: 'hiệu lực|thi hành'}]
+  to_trinh: {}
+  bao_cao:
+    muc: [{ten: "Kết quả/số liệu", khop: 'kết quả|số liệu|doanh thu|tình hình'}, {ten: "Đề xuất/kiến nghị", khop: 'đề xuất|kiến nghị|kế hoạch'}]
+  bien_ban:
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào hồi|lúc'}, {ten: "Địa điểm", khop: 'địa điểm|tại'}, {ten: "Thành phần tham dự", khop: 'thành phần|tham dự|có mặt'}, {ten: "Nội dung/kết luận", khop: 'nội dung|kết luận|nghị quyết'}]
+  bien_ban_ban_giao:
+    ten: "BIÊN BẢN BÀN GIAO"
+    nhan: "Biên bản bàn giao"
+    kinh_gui: false
+    muc: [{ten: "Bên giao", khop: 'bên giao'}, {ten: "Bên nhận", khop: 'bên nhận'}, {ten: "Danh mục/hiện trạng bàn giao", khop: 'danh mục|hiện trạng|tình trạng|bàn giao'}, {ten: "Xác nhận hai bên", khop: 'xác nhận|cam kết|đại diện'}]
+  hop_dong:
+    ten: "HỢP ĐỒNG"
+    nhan: "Hợp đồng"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Bên A", khop: 'bên a'}, {ten: "Bên B", khop: 'bên b'}, {ten: "Đối tượng/nội dung hợp đồng", khop: 'đối tượng|nội dung|phạm vi'}, {ten: "Giá trị và thanh toán", khop: 'giá trị|thanh toán|giá'}, {ten: "Quyền, nghĩa vụ các bên", khop: 'quyền|nghĩa vụ|trách nhiệm'}, {ten: "Giải quyết tranh chấp", khop: 'tranh chấp'}, {ten: "Hiệu lực", khop: 'hiệu lực|thời hạn'}]
+    goi_y: "Hợp đồng thường gồm: thông tin hai bên, đối tượng, giá và thanh toán, quyền - nghĩa vụ, tranh chấp, hiệu lực."
+  bao_gia:
+    ten: "BÁO GIÁ"
+    nhan: "Báo giá"
+    kinh_gui: true
+    muc: [{ten: "Danh mục hàng hóa/dịch vụ và đơn giá", khop: 'đơn giá|đơn vị tính|số lượng|\|'}, {ten: "Hiệu lực báo giá", khop: 'hiệu lực|có giá trị'}, {ten: "Điều kiện thanh toán/giao hàng", khop: 'thanh toán|giao hàng|bảo hành'}]
+  giay_de_nghi:
+    ten: "GIẤY ĐỀ NGHỊ"
+    nhan: "Giấy đề nghị (thanh toán, tạm ứng, mua sắm...)"
+    kinh_gui: true
+    trich_yeu: bat_buoc
+    muc: [{ten: "Nội dung/lý do đề nghị", khop: 'lý do|nội dung|đề nghị'}, {ten: "Số tiền/giá trị", khop: 'số tiền|giá trị|đồng|vnđ'}]
+  quy_che: {}
+  quy_trinh:
+    ten: "QUY TRÌNH"
+    nhan: "Quy trình"
+    kinh_gui: false
+    muc: [{ten: "Mục đích, phạm vi áp dụng", khop: 'mục đích|phạm vi'}, {ten: "Các bước thực hiện", khop: 'bước|trình tự|thực hiện'}, {ten: "Trách nhiệm", khop: 'trách nhiệm|phụ trách'}]
+  thu_moi:
+    ten: "THƯ MỜI"
+    nhan: "Thư mời"
+    kinh_gui: true
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào lúc|lúc'}, {ten: "Địa điểm", khop: 'địa điểm|tại'}]
+
+ten_heading: ["Phần", "Chương", "Mục", "Điều", "Khoản"]

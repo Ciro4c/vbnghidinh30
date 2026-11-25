@@ -1,0 +1,114 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Tài liệu học thuật/giảng dạy: đề cương học phần, kế hoạch bài dạy, chương trình đào tạo, biên bản họp bộ môn, báo cáo.
+extends: nd30
+name: "Giáo dục: tài liệu giảng dạy, đề cương, chương trình"
+loai: van_ban
+mo_ta: "Không quốc hiệu, tiêu ngữ, số ký hiệu. Đầu trang có tên trường/khoa bên trái, tên tài liệu in hoa canh giữa; lề 20-30-20, cỡ chữ 13, bảng cỡ 12 có tô tiêu đề. Phù hợp đề cương, giáo án, chương trình đào tạo."
+
+thanh_phan:
+  quoc_hieu: false
+  tieu_ngu: false
+  so_ky_hieu: false
+  kinh_gui: false
+  noi_nhan: false
+  dia_danh_ngay: true
+
+nhan_thanh_phan:
+  co_quan: "Tên trường / khoa / bộ môn"
+  ten_loai: "Tên tài liệu (ĐỀ CƯƠNG HỌC PHẦN...)"
+  chu_ky: "Người biên soạn / duyệt (chức danh, họ tên)"
+
+mau_thanh_phan:
+  day_du:
+    ten: "Có tên trường, tên tài liệu, ngày, chữ ký"
+    bat: {}
+  chi_noi_dung:
+    ten: "Chỉ tên tài liệu và nội dung"
+    bat: {co_quan: false, dia_danh_ngay: false, chu_ky: false}
+
+margins_mm: {top: 20, bottom: 20, left: 30, right: 20}
+
+body:
+  size_pt: 13
+  line_spacing: 1.3
+  first_line_indent_cm: 1.0
+
+table:
+  size_pt: 12
+
+ra_soat:
+  ky_hieu_theo_loai: false
+  noi_nhan_luu_vt: false
+  trich_yeu_bat_buoc: false
+  trich_yeu_ve_viec: false
+
+form:
+  co_quan_ban_hanh: "TRƯỜNG ĐẠI HỌC ABC - KHOA XYZ"
+  trich_yeu: "Học phần: Quản lý hành chính (3 tín chỉ)"
+  chuc_vu_ky: "GIẢNG VIÊN BIÊN SOẠN"
+
+# Tài liệu giáo dục: đề cương, giáo trình, bài giảng, giáo án, đề kiểm tra, SKKN...
+# Mục `muc` là cấu trúc thường gặp (có thể khác theo quy chế của trường/cơ sở đào tạo); chỉ cảnh báo, không bắt buộc.
+loai_van_ban:
+  de_cuong_hoc_phan:
+    ten: "ĐỀ CƯƠNG HỌC PHẦN"
+    nhan: "Đề cương học phần / môn học"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    trich_yeu_nhan: "Tên học phần, số tín chỉ (ví dụ: Quản lý hành chính - 3 tín chỉ)"
+    muc: [{ten: "Thông tin chung (mã học phần, số tín chỉ, giảng viên)", khop: 'thông tin chung|mã học phần|số tín chỉ'}, {ten: "Mục tiêu / chuẩn đầu ra", khop: 'mục tiêu|chuẩn đầu ra'}, {ten: "Nội dung học phần", khop: 'nội dung'}, {ten: "Phương pháp giảng dạy, học tập", khop: 'phương pháp'}, {ten: "Kiểm tra, đánh giá", khop: 'đánh giá|kiểm tra|thang điểm'}, {ten: "Tài liệu học tập, tham khảo", khop: 'tài liệu'}]
+  giao_trinh:
+    ten: "GIÁO TRÌNH"
+    nhan: "Giáo trình"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    trich_yeu_nhan: "Tên giáo trình / môn học"
+    muc: [{ten: "Lời nói đầu / giới thiệu", khop: 'lời nói đầu|lời giới thiệu|giới thiệu'}, {ten: "Mục lục", khop: 'mục lục'}, {ten: "Các chương/bài", khop: 'chương\s*\w+|bài\s*\d+'}, {ten: "Tài liệu tham khảo", khop: 'tài liệu tham khảo'}]
+  bai_giang:
+    ten: "BÀI GIẢNG"
+    nhan: "Bài giảng"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Mục tiêu bài học", khop: 'mục tiêu|yêu cầu cần đạt'}, {ten: "Nội dung chính", khop: 'nội dung'}, {ten: "Câu hỏi ôn tập / bài tập", khop: 'câu hỏi|bài tập|ôn tập'}]
+  giao_an:
+    ten: "KẾ HOẠCH BÀI DẠY"
+    nhan: "Kế hoạch bài dạy (giáo án)"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    trich_yeu_nhan: "Tên bài học (ví dụ: Bài 5 - Hàm số bậc nhất)"
+    muc: [{ten: "Mục tiêu / yêu cầu cần đạt", khop: 'mục tiêu|yêu cầu cần đạt'}, {ten: "Thiết bị dạy học và học liệu", khop: 'thiết bị|học liệu|chuẩn bị'}, {ten: "Tiến trình dạy học (các hoạt động)", khop: 'tiến trình|hoạt động'}, {ten: "Kiểm tra, đánh giá / củng cố", khop: 'đánh giá|củng cố|kiểm tra'}]
+    goi_y: "Kế hoạch bài dạy thường gồm: mục tiêu, thiết bị dạy học và học liệu, tiến trình dạy học (các hoạt động), đánh giá."
+  chuong_trinh_dao_tao:
+    ten: "CHƯƠNG TRÌNH ĐÀO TẠO"
+    nhan: "Chương trình đào tạo"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Mục tiêu đào tạo", khop: 'mục tiêu'}, {ten: "Chuẩn đầu ra", khop: 'chuẩn đầu ra'}, {ten: "Khung/cấu trúc chương trình, số tín chỉ", khop: 'khung chương trình|cấu trúc|tín chỉ'}, {ten: "Kế hoạch giảng dạy", khop: 'kế hoạch giảng dạy|kế hoạch đào tạo|học kỳ'}]
+  de_kiem_tra:
+    ten: "ĐỀ KIỂM TRA"
+    nhan: "Đề kiểm tra / đề thi"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    trich_yeu_nhan: "Môn, lớp, học kỳ (ví dụ: Môn Toán 10 - Học kỳ I)"
+    muc: [{ten: "Thời gian làm bài", khop: 'thời gian'}, {ten: "Các câu hỏi", khop: 'câu\s*\d+|bài\s*\d+'}, {ten: "Thang điểm / đáp án", khop: 'điểm|đáp án'}]
+  skkn:
+    ten: "SÁNG KIẾN KINH NGHIỆM"
+    nhan: "Sáng kiến kinh nghiệm / đề tài nghiên cứu"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Đặt vấn đề / lý do chọn đề tài", khop: 'đặt vấn đề|lý do chọn|mở đầu'}, {ten: "Thực trạng", khop: 'thực trạng'}, {ten: "Giải pháp thực hiện", khop: 'giải pháp|biện pháp'}, {ten: "Kết quả đạt được", khop: 'kết quả|hiệu quả'}, {ten: "Kết luận, kiến nghị", khop: 'kết luận|kiến nghị'}]
+  tai_lieu_khac:
+    ten: "TÀI LIỆU"
+    nhan: "Tài liệu khác (không có tên loại cố định)"
+    kinh_gui: false
+
+ngat_trang:
+  chuong: true
+  tieu_de: 'MỤC LỤC|LỜI|MỞ ĐẦU|PHỤ LỤC|TÀI LIỆU THAM KHẢO|DANH MỤC'
+
+ten_heading: ["Phần", "Chương", "Mục (1.1)", "Tiểu mục (1.1.1)", "Tiểu mục (1.1.1.1)"]
+
+# Định dạng đề mục riêng của giáo trình/tài liệu (cấp 1 = Phần, 2 = Chương...): chương lớn hơn chữ văn bản
+heading_dinh_dang:
+  1: {size: 16}
+  2: {size: 15}

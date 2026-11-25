@@ -1,0 +1,68 @@
+# Bản quyền © Thevancorp-1801808400. Bảo lưu mọi quyền.
+# Văn bản hành chính của cơ sở giáo dục (Sở/Phòng GD&ĐT, trường học, trung tâm): theo NĐ 30/2020/NĐ-CP, cỡ chữ 13.
+extends: nd30
+name: "Giáo dục: văn bản hành chính trường học"
+loai: van_ban
+mo_ta: "Theo NĐ 30: cơ quan chủ quản (Sở/Phòng GD&ĐT) và trường, số ký hiệu dạng 45/QĐ-THPT, cỡ chữ 13. Dùng cho kế hoạch, quyết định, thông báo, tờ trình, công văn của nhà trường."
+
+nhan_thanh_phan:
+  co_quan_chu_quan: "Cơ quan chủ quản (Sở/Phòng GD&ĐT)"
+  co_quan: "Tên trường / cơ sở giáo dục"
+  chu_ky: "Chữ ký (Hiệu trưởng/Phó Hiệu trưởng, họ tên)"
+
+mau_thanh_phan:
+  day_du:
+    ten: "Đầy đủ theo NĐ 30"
+    bat: {}
+  noi_bo_khong_quoc_hieu:
+    ten: "Nội bộ nhà trường: bỏ quốc hiệu và tiêu ngữ"
+    bat: {quoc_hieu: false, tieu_ngu: false}
+
+body:
+  size_pt: 13
+  line_spacing: 1.15
+
+form:
+  co_quan_chu_quan: "SỞ GIÁO DỤC VÀ ĐÀO TẠO TP. CẦN THƠ"
+  co_quan_ban_hanh: "TRƯỜNG THPT ABC"
+  ky_hieu: "QĐ-THPT"
+  quyen_han_ky: "KT. HIỆU TRƯỞNG"
+  chuc_vu_ky: "PHÓ HIỆU TRƯỞNG"
+
+# Loại văn bản của nhà trường
+loai_van_ban:
+  cong_van: {}
+  quyet_dinh:
+    muc: [{ten: "Điều 1", khop: 'điều\s*1\b'}, {ten: "Hiệu lực/thi hành", khop: 'hiệu lực|thi hành|chịu trách nhiệm'}]
+  thong_bao: {}
+  ke_hoach:
+    muc: [{ten: "Mục đích, yêu cầu", khop: 'mục đích|yêu cầu|mục tiêu'}, {ten: "Nội dung/nhiệm vụ", khop: 'nội dung|nhiệm vụ'}, {ten: "Tổ chức thực hiện", khop: 'tổ chức thực hiện|phân công'}]
+  ke_hoach_nam_hoc:
+    ten: "KẾ HOẠCH"
+    nhan: "Kế hoạch năm học / kế hoạch giáo dục nhà trường"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Đặc điểm tình hình", khop: 'đặc điểm|tình hình|thuận lợi|khó khăn'}, {ten: "Mục tiêu, chỉ tiêu", khop: 'mục tiêu|chỉ tiêu'}, {ten: "Nhiệm vụ, giải pháp", khop: 'nhiệm vụ|giải pháp'}, {ten: "Tổ chức thực hiện", khop: 'tổ chức thực hiện|phân công'}]
+  bao_cao:
+    muc: [{ten: "Kết quả", khop: 'kết quả|tình hình'}, {ten: "Tồn tại, hạn chế", khop: 'tồn tại|hạn chế|khó khăn'}, {ten: "Phương hướng", khop: 'phương hướng|nhiệm vụ|kiến nghị'}]
+  to_trinh: {}
+  bien_ban_hop_hdsp:
+    ten: "BIÊN BẢN"
+    nhan: "Biên bản họp (hội đồng sư phạm, tổ chuyên môn, phụ huynh)"
+    kinh_gui: false
+    trich_yeu: bat_buoc
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào hồi|lúc'}, {ten: "Địa điểm", khop: 'địa điểm|tại'}, {ten: "Thành phần tham dự, chủ trì, thư ký", khop: 'chủ trì|thư ký|tham dự|thành phần'}, {ten: "Nội dung họp", khop: 'nội dung|ý kiến|diễn biến'}, {ten: "Kết luận", khop: 'kết luận|thống nhất|nghị quyết'}]
+  giay_moi: {}
+  giay_gioi_thieu: {}
+  giay_xac_nhan:
+    ten: "GIẤY XÁC NHẬN"
+    nhan: "Giấy xác nhận (học sinh, giáo viên)"
+    kinh_gui: false
+    muc: [{ten: "Họ tên người được xác nhận", khop: 'ông|bà|em|anh|chị|họ và tên|họ tên'}, {ten: "Nội dung xác nhận", khop: 'xác nhận|đang|là'}, {ten: "Mục đích sử dụng", khop: 'để|mục đích|làm'}]
+  thong_bao_phu_huynh:
+    ten: "THÔNG BÁO"
+    nhan: "Thông báo gửi phụ huynh"
+    kinh_gui: true
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào lúc|lúc|ngày'}, {ten: "Nội dung thông báo", khop: '.'}]
+
+ten_heading: ["Phần", "Chương", "Mục", "Điều", "Khoản"]

@@ -45,7 +45,7 @@ body:
   height_in: 4.85
   width_with_image_in: 6.6
   max_bullets: 6
-  max_lines: 9
+  max_lines: 10
   long_item_chars: 200
   bullet_color: "accent"
 
@@ -86,3 +86,6 @@ closing:
   enabled: true
   text: "Xin trân trọng cảm ơn"
   size_pt: 40
+
+diagram:                  # slide dạng sơ đồ/infographic (nhiều mảnh chữ rời, mũi tên, WordArt)
+  mode: giu_nguyen        # giu_nguyen = chép nguyên hình vẽ gốc, chỉ chuẩn hóa tiêu đề/chân trang; gom_chu = chỉ lấy chữ

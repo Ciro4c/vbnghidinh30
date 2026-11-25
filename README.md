@@ -148,7 +148,7 @@ vanban-nd30/
 
 ## Tính năng nâng cấp (phiên bản này)
 
-**Thể thức tùy chọn.** Chọn thể thức ở đầu form (mặc định NĐ 30/2020; kèm: Đảng 05-HD/VPTW, Đoàn TNCS HCM 29-HD/TWĐTN-VP, Công đoàn QĐ 933/QĐ-TLĐ, Quân đội TT 92/2012/TT-BQP). Mỗi thành phần (quốc hiệu, tiêu ngữ, cơ quan, số ký hiệu, địa danh ngày, tên loại, trích yếu, kính gửi, chữ ký, nơi nhận, số trang, phụ lục) có ô chọn; có mẫu nhanh như “bỏ quốc hiệu và tiêu ngữ”. Thông số chi tiết (lề, cỡ chữ...) ghi đè bằng JSON, được kiểm tra khoảng hợp lệ. Cấu hình lưu/nạp ra file JSON. Thể thức mới: thêm một file vào `app/profiles/` (có thể `extends: nd30` rồi chỉ ghi phần khác). **Lưu ý:** các thể thức ngoài NĐ 30 được dựng từ bản tóm tắt hoặc từ mẫu văn bản thực tế (Đoàn: lề và cỡ chữ chưa đọc được từ bản gốc; Công đoàn: chưa nạp Phụ lục 1 nên dùng thông số NĐ 30; Quân đội: số trang đặt giữa lề trên thay vì góc phải chân trang, chưa kiểm tra văn bản còn hiệu lực), cần đối chiếu bản gốc trước khi dùng chính thức.
+**Thể thức tùy chọn.** Chọn thể thức ở đầu form (mặc định NĐ 30/2020; kèm: Đảng 05-HD/VPTW, Đoàn TNCS HCM 29-HD/TWĐTN-VP, Công đoàn QĐ 933/QĐ-TLĐ, Quân đội TT 92/2012/TT-BQP). Mỗi thành phần (quốc hiệu, tiêu ngữ, cơ quan, số ký hiệu, địa danh ngày, tên loại, trích yếu, kính gửi, chữ ký, nơi nhận, số trang, phụ lục) có ô chọn; có mẫu nhanh như “bỏ quốc hiệu và tiêu ngữ”. Thông số chi tiết (lề, cỡ chữ...) ghi đè bằng JSON, được kiểm tra khoảng hợp lệ. Cấu hình lưu/nạp ra file JSON. Thể thức mới: thêm một file vào `app/profiles/` (có thể `extends: nd30` rồi chỉ ghi phần khác). **Lưu ý:** các thể thức ngoài NĐ 30 được dựng từ bản tóm tắt hoặc từ mẫu văn bản thực tế (Đoàn: lề và cỡ chữ chưa đọc được từ bản gốc; Công đoàn: chưa nạp Phụ lục 1 nên dùng thông số NĐ 30; Quân đội: số trang đặt giữa lề trên thay vì góc phải chân trang, TT 92/2012/TT-BQP đã tra cứu: là thông tư thể thức, còn hiệu lực theo vbpl.vn; QĐ 933/QĐ-TLĐ ngày 14/5/2024 là đúng số), cần đối chiếu bản gốc trước khi dùng chính thức.
 
 **Dò ký tự lạ do AI.** Phát hiện ký tự vô hình (zero-width, điều khiển chiều chữ), khoảng trắng lạ, ký hiệu Markdown (`**`, `#`, bảng `|---|`), mã trích dẫn chatbot (`[oaicite]`, `turn0search0`, `【…†source】`), emoji, chữ giả dạng (homoglyph), lỗi mã hóa tiếng Việt, NFD/NFC, ô giữ chỗ chưa điền, câu dẫn của chatbot. Nút “Dò ký tự lạ” trong ô nội dung, tùy chọn tự dọn khi đọc file Word/TXT/PDF, và mục “Ký tự lạ” trong tab PDF. Mục nào không tự sửa an toàn được thì chỉ báo.
 
@@ -184,3 +184,43 @@ tạo ra, và thông tin phiên bản của file .exe (chuột phải → Proper
 Workflow `.github/workflows/pages.yml` chạy `scripts/build_pages.py`, đóng gói `app/` + `web/` vào `_site/`
 và đưa lên GitHub Pages. Python chạy ngay trong trình duyệt (Pyodide), không cần máy chủ.
 Bật một lần: Settings → Pages → Source: **GitHub Actions**.
+
+### Slide sơ đồ / infographic
+Slide có nhiều mảnh chữ rời, mũi tên, WordArt được nhận diện là "sơ đồ" và giữ nguyên hình vẽ gốc (thu phóng vừa vùng nội dung, kể cả cỡ chữ); chỉ tiêu đề và chân trang được chuẩn hóa. Đổi `diagram.mode: gom_chu` trong profile để chỉ lấy chữ. Chữ đè lên hình thành chú thích hình; tên bảng đi cùng slide bảng; chữ trong khối WordArt/AlternateContent được đọc đầy đủ.
+
+### Tuân thủ tiêu chuẩn thiết kế slide (kiểu "Action Title")
+Profile `slide_action.yaml` dùng đúng bảng khung placeholder và bảng màu theme trong tài liệu hướng dẫn (tiêu đề 12.0×1.2 in tại 0.67/0.55; nội dung 12.0×4.4 in tại 0.67/1.90; chân trang, ngày, số trang ở y = 6.55 in; theme: dk1 1E293B, accent1 0F172A, accent2 0284C7, accent3 B91C1C…). Ý quá dài tự rút thành ý chính (≤ 12 từ), nguyên văn nằm trong ghi chú diễn giả nên không mất chữ. Sau khi chuẩn hóa, ứng dụng kiểm tra lại file vừa dựng và báo số mục đạt/cảnh báo/lỗi. Tiêu đề dạng danh từ chỉ được gợi ý sửa, không tự bịa kết luận.
+
+### Cập nhật: bảng, thể thức doanh nghiệp/giáo dục, dấu trang PDF, chữ ký
+- Bảng Word có các hàng vẽ lệch cột được ép về cùng lưới cột (lấy theo hàng điển hình), ô rộng gộp qua nhiều cột.
+- Thể thức mới: `dn_cong_van`, `dn_noi_bo` (doanh nghiệp), `gd_truong_hoc`, `gd_tai_lieu` (giáo dục). Sao chép một file trong `app/profiles/` để tạo thể thức riêng của đơn vị.
+- Tab Văn bản: "Tùy chỉnh trình bày" là các ô nhập (lề, cỡ chữ, giãn dòng, phông); ô JSON chỉ còn dành cho người rành.
+- Tab PDF: dấu trang chọn một trong bốn chế độ (tự động theo thể thức / giữ nguyên / tự nhập / xóa hết), có xem trước. Chữ ký có ô Quyền hạn, Chức vụ, Họ tên; có thể in chức danh, họ tên không cần ảnh.
+
+## Kiểm tra & đánh số trang PDF; rà soát Word
+
+- PDF: tab "Bước 5. Đánh số trang" – tự dò số trang hiện có (vị trí, liên tục, trang 1) và đóng số mới theo vị trí/định dạng/trang bắt đầu. Số được đóng dưới dạng ảnh nên không dò lại được bằng lớp chữ.
+- Word: `/api/ra-soat` rà soát logic theo thể thức (ký hiệu theo loại văn bản, Kính gửi, quyền hạn ký, ngày tháng…); khối `ra_soat:`/`form:` trong profile. Đây là gợi ý theo quy tắc, không dùng AI.
+
+### Loại văn bản và rà soát theo từng thể thức
+Mục `loai_van_ban:` trong profile quyết định danh sách loại văn bản/tài liệu và cấu trúc mục thường có của từng loại (`muc`, `kinh_gui`, `trich_yeu`, `viet_tat`). Chọn thể thức nào thì danh sách loại và rà soát đổi theo thể thức đó: NĐ 30 (hành chính), văn bản Đảng, doanh nghiệp (hợp đồng, báo giá, biên bản bàn giao, quy trình…), nhà trường (kế hoạch năm học, biên bản họp, giấy xác nhận…), tài liệu giáo dục (đề cương học phần, giáo trình, bài giảng, giáo án, đề kiểm tra, SKKN…). Nút “Chèn khung các mục” điền sẵn các đề mục. Muốn thêm loại mới chỉ cần sửa yaml.
+
+### Khung điều hướng và ngắt trang
+Chương, Mục lục, Lời nói đầu, Phụ lục, Tài liệu tham khảo… (dòng in hoa riêng, hoặc “Chương I. Tên”) được gán cấp đề mục nên hiện trong khung điều hướng của Word và thành dấu trang khi xuất PDF. Mục `ngat_trang:` trong profile (hoặc ô “Ngắt trang trước Chương / Mục lục / Phụ lục” ở Tùy chỉnh trình bày) bật ngắt trang trước các phần này; mặc định bật cho tài liệu giáo dục, tắt cho văn bản hành chính.
+
+### Kiểu đề mục (Heading) gọn theo thể thức
+Đề mục dùng kiểu riêng đặt tên theo thể thức (`ten_heading:` trong profile, ví dụ “VB Mục (1.1)”), có cấp điều hướng liên tục: Chương/Phần/Mục lục/Phụ lục = cấp 1, Mục = cấp 2, Tiểu mục/Điều = cấp 3; không có Chương thì Mục tự lên cấp 1. Các kiểu mẫu thừa của Word (Heading 1-9, Title, List…) bị xóa khỏi file (`don_style: true`; đặt `false` nếu muốn giữ). Nhận cả “Mục lục”, “Phụ lục 1” viết thường/hoa và “Phần I”, “Chương 1:”; dòng mục lục gõ tay dạng “Chương I ... 3” được dựng thành dẫn chấm căn phải, không bị coi là chương.
+
+## Nhập Word: giữ định dạng, mục lục, đối chiếu đầy đủ
+- In đậm/nghiêng trong nội dung được giữ bằng `**đậm**`, `*nghiêng*`, `***cả hai***` (`\*` = dấu * thật). Ô bảng hỗ trợ `[[giua]]`/`[[phai]]`, `[[dong-trong]]`; ô tích ☐☒☑ (Wingdings) được giữ.
+- Mục lục tự động của Word được nhận dạng và thay bằng `[[muc-luc]]`: xuất ra trường TOC thật (số trang ước tính, Word cập nhật khi mở).
+- Chương/Phần/Mục lục/Phụ lục tự ngắt trang (tắt được ở Tùy chỉnh → ngắt trang).
+- `doi_chieu.py` so sánh từng từ giữa file gốc và kết quả; thiếu chữ sẽ có cảnh báo.
+- Hợp đồng: tự chuyển sang thể thức Doanh nghiệp, loại Hợp đồng; bảng ký hai bên giữ nguyên dạng bảng.
+
+## Bộ style đề mục cố định
+Mọi thể thức dùng cùng 5 cấp Heading 1–5 (cấp điều hướng 1–5): 1 Phần, 2 Chương (kèm Phụ lục, Mục lục, Lời nói đầu…), 3 Mục, 4 Điều, 5 Khoản. Tên riêng của thể thức hiện ở bí danh, ví dụ "Heading 2,Chương"; giáo trình/tài liệu dùng "Mục (1.1)", "Tiểu mục (1.1.1)". Đổi tên ở khóa `ten_heading` (5 phần tử) trong profile. Style không dùng (Title, Subtitle, Emphasis, Quote, List Paragraph, TOC 6–9, Heading 6–9, kiểu *Char*…) bị xóa khi xuất (`don_style`).
+
+## Tùy chọn style và mục lục
+- `don_style`: `thua` (mặc định: xóa kiểu không dùng, luôn giữ Heading 1–5) | `toi_gian` (xóa cả Heading không dùng) | `giu` (giữ nguyên). Chọn ở Tùy chỉnh → "Xóa style thừa".
+- `cap_nhat_muc_luc`: mặc định `false` (không hiện hộp thoại "update fields" khi mở Word, số trang mục lục là ước tính; chuột phải → Update Field để chính xác). `true` = Word hỏi cập nhật khi mở.

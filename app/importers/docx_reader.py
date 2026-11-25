@@ -50,6 +50,7 @@ class Line:
     kind: str = "text"     # "text" | "bang" | "hinh" | "ngat" (ngắt trang)
     raw: str = ""          # nội dung đánh dấu thật của dòng bảng/hình/ngắt trang
     ngang: bool = False    # dòng nằm trong phần (section) giấy nằm ngang
+    md: str = ""           # cùng chữ với `text` nhưng có đánh dấu **đậm**, *nghiêng* theo từng đoạn chữ (rỗng = không có)
 
 
 _LATEX = {r"\phi": "φ", r"\varphi": "φ", r"\le": "≤", r"\leq": "≤", r"\ge": "≥", r"\geq": "≥",
@@ -116,18 +117,113 @@ def _trong(el, goc, tags) -> bool:
     return False
 
 
+_WINGDINGS = {0xF0A8: "☐", 0xF06F: "☐", 0xF0A1: "☐", 0xF071: "❑", 0xF0FE: "☑", 0xF0FD: "☒", 0xF078: "☒", 0xF0FB: "☒",
+              0xF0FC: "✓", 0xF0D8: "➢", 0xF0A7: "▪", 0xF0B7: "•", 0xF076: "❖", 0xF0E0: "➔", 0xF0E8: "➔"}
+
+
+def _ky_tu_sym(el) -> str:
+    """Ký tự đặc biệt <w:sym> (Wingdings/Symbol): ô tích, đầu dòng... Không biết thì bỏ qua."""
+    try:
+        ma = int(el.get(qn("w:char")) or "0", 16)
+    except ValueError:
+        return ""
+    return _WINGDINGS.get(ma if ma >= 0xF000 else ma + 0xF000, "")
+
+
+def _ky_tu_o_tich(el) -> str:
+    """Ô tích dạng biểu mẫu cũ (<w:checkBox>): ☒ nếu đã tích."""
+    ck = el.find(qn("w:checked"))
+    if ck is not None:
+        return "☐" if ck.get(qn("w:val")) in ("0", "false") else "☒"
+    mac = el.find(qn("w:default"))
+    return "☒" if mac is not None and mac.get(qn("w:val")) not in ("0", "false") else "☐"
+
+
+def _chu_cua_run(r_el) -> str:
+    out = []
+    for el in r_el.iterchildren():
+        if el.tag == qn("w:t"):
+            out.append(el.text or "")
+        elif el.tag == qn("w:tab"):
+            out.append("\t")
+        elif el.tag in (qn("w:br"), qn("w:cr")):
+            if el.get(qn("w:type")) != "page":
+                out.append("\n")
+        elif el.tag == qn("w:sym"):
+            out.append(_ky_tu_sym(el))
+        elif el.tag == qn("w:noBreakHyphen"):
+            out.append("-")
+        elif el.tag == qn("w:fldChar"):
+            pass
+    return "".join(out)
+
+
 def _text_doan(p_el) -> str:
     out = []
     for el in p_el.iter():
-        if _trong(el, p_el, (qn("w:txbxContent"),)):
+        if _trong(el, p_el, (qn("w:txbxContent"), qn("w:del"), qn("w:instrText"))):
             continue
         if el.tag == qn("w:t"):
             out.append(el.text or "")
         elif el.tag in (qn("w:tab"), qn("w:br"), qn("w:cr")):
             par = el.getparent()
-            if par is not None and par.tag == qn("w:r"):
+            if par is not None and par.tag == qn("w:r") and not (el.tag == qn("w:br") and el.get(qn("w:type")) == "page"):
                 out.append("\t" if el.tag == qn("w:tab") else "\n")
+        elif el.tag == qn("w:sym"):
+            out.append(_ky_tu_sym(el))
+        elif el.tag == qn("w:checkBox"):
+            out.append(_ky_tu_o_tich(el) + " ")
     return "".join(out)
+
+
+def _md_doan(p: Paragraph, text: str, bo_dam: bool = False) -> str:
+    """Chữ của đoạn kèm đánh dấu **đậm** / *nghiêng* theo từng đoạn chữ. Trả về "" nếu không có định dạng nào cần giữ
+    hoặc không khớp với `text` (khi đó dùng chữ thường)."""
+    if "\n" in _text_doan(p._p):
+        return ""
+    try:
+        style_b = p.style.font.bold is True
+        style_i = p.style.font.italic is True
+    except Exception:
+        style_b = style_i = False
+    seg: list[list] = []
+    for r in p.runs:
+        t = _chu_cua_run(r._r).replace("\t", " ")
+        if not t:
+            continue
+        b = r.bold if r.bold is not None else style_b
+        i = r.italic if r.italic is not None else style_i
+        if bo_dam:
+            b = False
+        if seg and seg[-1][1] == b and seg[-1][2] == i:
+            seg[-1][0] += t
+        else:
+            seg.append([t, bool(b), bool(i)])
+    if not seg or not any(x[1] or x[2] for x in seg) and "*" not in text:
+        return ""
+    # đoạn gần như cả đoạn cùng một kiểu: bọc cả đoạn một lần (chữ trắng/dấu cách rời không làm vỡ kiểu)
+    tong = sum(len(x[0].strip()) for x in seg) or 1
+    for k in (1, 2):
+        dem = sum(len(x[0].strip()) for x in seg if x[k])
+        if dem / tong > 0.8:
+            for x in seg:
+                x[k] = True
+    out = []
+    for t, b, i in seg:
+        t = t.replace("*", "\\*")
+        lead = t[:len(t) - len(t.lstrip())]
+        tail = t[len(t.rstrip()):]
+        core = t.strip()
+        if not core:
+            out.append(t)
+            continue
+        m = "***" if (b and i) else "**" if b else "*" if i else ""
+        out.append(f"{lead}{m}{core}{m}{tail}")
+    md = lam_sach("".join(out))
+    plain = re.sub(r"(?<!\\)\*+", "", md).replace("\\*", "*")
+    if re.sub(r"\s+", "", plain) != re.sub(r"\s+", "", text.replace("\t", " ")):
+        return ""
+    return md
 
 
 def _ty_le(p: Paragraph, thuoc_tinh: str) -> bool:
@@ -228,8 +324,9 @@ def _them_doan(lines: list[Line], p: Paragraph, ctx: _Ctx):
         bullet = pPr is not None and pPr.numPr is not None
         bold, italic = _ty_le(p, "bold"), _ty_le(p, "italic")
         for k, text in enumerate(parts):
+            md = _md_doan(p, text) if len(parts) == 1 else ""
             lines.append(Line(text, bold, italic, _ALIGN.get(p.alignment, ""), heading,
-                              bullet and k == 0))
+                              bullet and k == 0, md=md))
     for tb in _hop_van_ban(p._p):
         ctx.bao("hop_van_ban", "File có hộp văn bản (text box); nội dung trong hộp được đọc ngay sau "
                                "đoạn chứa hộp, hãy kiểm tra thứ tự.")
@@ -269,6 +366,19 @@ def _la_bang_chu_ky(t_el) -> bool:
     return False
 
 
+def _la_bang_ky_hai_ben(t_el) -> bool:
+    """Một hàng có từ hai ô trở lên, mỗi ô mở đầu bằng "ĐẠI DIỆN ...", "BÊN A/B", "NGƯỜI BÁN/MUA..."."""
+    for tr in t_el.tr_lst:
+        dem = 0
+        for tc in tr.tc_lst:
+            d = _khong_dau("".join(t.text or "" for t in tc.iter(qn("w:t")))).strip()
+            if re.match(r"^(dai dien|ben\s+[a-z]\b|nguoi\s+(ban|mua|giao|nhan|lap|duyet)|chu\s+(dau tu|hop dong))", d):
+                dem += 1
+        if dem >= 2:
+            return True
+    return False
+
+
 def _la_bang_bo_cuc(t_el, ten_kieu: str) -> bool:
     """Bảng dàn trang (đầu văn bản, khối chữ ký...) thì đọc phẳng; bảng dữ liệu thì giữ cấu trúc."""
     nt = _khong_dau(" ".join(t.text or "" for t in t_el.iter(qn("w:t"))))
@@ -278,6 +388,8 @@ def _la_bang_bo_cuc(t_el, ten_kieu: str) -> bool:
         d = _khong_dau("".join(t.text or "" for t in tc.iter(qn("w:t")))).strip()
         if re.match(r"^noi nhan\s*:?", d) or re.match(r"^(tm|kt|tl|tuq|q)\.", d):
             return True
+    if _la_bang_ky_hai_ben(t_el):
+        return False                 # khối ký của hợp đồng/biên bản (ĐẠI DIỆN BÊN A | ĐẠI DIỆN BÊN B): giữ thành bảng
     so_dong = len(t_el.tr_lst)
     so_cot = max((len(tr.tc_lst) for tr in t_el.tr_lst), default=0)
     if not _co_vien(t_el, ten_kieu) and so_cot >= 2 and _la_bang_chu_ky(t_el):
@@ -287,14 +399,28 @@ def _la_bang_bo_cuc(t_el, ten_kieu: str) -> bool:
     return False
 
 
-def _o_bang(ctx: _Ctx, tc, doc) -> str:
-    """Nội dung một ô: các đoạn cách nhau bằng <br>, hình thành [[hinh:N]]."""
+def _o_bang(ctx: _Ctx, tc, doc, bo_dam: bool = False) -> str:
+    """Nội dung một ô: các đoạn cách nhau bằng <br>, hình thành [[hinh:N]]; giữ **đậm**, *nghiêng* từng đoạn chữ."""
     parts: list[str] = []
+    can_le = ""                             # canh lề của ô (đoạn chữ đầu tiên): giữa/phải thì ghi dấu hiệu đầu ô
+    trong_cuoi = 0                          # số đoạn trống cuối ô (chỗ để ký tên/đóng dấu)
     for child in tc.iterchildren():
         if child.tag == qn("w:p"):
-            for x in _text_doan(child).split("\n"):
-                x = lam_sach(x).replace("\t", " ").strip()
-                if x:
+            par = Paragraph(child, doc)
+            if not _text_doan(child).strip() and not any(True for _ in child.iter(_A_BLIP, _V_IMAGEDATA)):
+                trong_cuoi += 1
+                continue
+            trong_cuoi = 0
+            if not parts:
+                can_le = {WD_ALIGN_PARAGRAPH.CENTER: "[[giua]]", WD_ALIGN_PARAGRAPH.RIGHT: "[[phai]]"}.get(par.alignment, "")
+            chu = _text_doan(child)
+            nhieu = [lam_sach(x).replace("\t", " ").strip() for x in chu.split("\n")]
+            nhieu = [x for x in nhieu if x]
+            md = _md_doan(par, nhieu[0], bo_dam) if len(nhieu) == 1 else ""
+            if md:
+                parts.append(md.replace("\t", " ").strip().replace("|", "\\|"))
+            else:
+                for x in nhieu:
                     parts.append(x.replace("|", "\\|"))
             parts.extend(f"[[hinh:{i}]]" for i in _hinh_trong_doan(ctx, child))
         elif child.tag == qn("w:tbl"):
@@ -303,7 +429,14 @@ def _o_bang(ctx: _Ctx, tc, doc) -> str:
                 x = lam_sach(_text_doan(t)).replace("\t", " ").strip()
                 if x:
                     parts.append(x.replace("|", "\\|"))
-    return "<br>".join(parts)
+        elif child.tag == qn("w:sdt"):
+            for t in child.iter(qn("w:p")):
+                x = lam_sach(_text_doan(t)).replace("\t", " ").strip()
+                if x:
+                    parts.append(x.replace("|", "\\|"))
+    if parts and trong_cuoi:
+        parts.extend(["[[dong-trong]]"] * min(trong_cuoi, 6))
+    return can_le + "<br>".join(parts)
 
 
 def _hang_tieu_de(t_el, doc) -> bool:
@@ -323,21 +456,103 @@ def _hang_tieu_de(t_el, doc) -> bool:
     return tong > 0 and dam / tong >= 0.8
 
 
-def _doc_bang(ctx: _Ctx, t_el) -> list[str]:
-    luoi: list[list[str]] = []
+def _vi_tri_o(t_el) -> list[list[tuple[float, float]]]:
+    """Vị trí ngang (x0, x1, đơn vị twip) của từng ô trong từng hàng. Dựa vào chiều rộng ô (tcW) để các hàng có
+    số ô/độ rộng ô khác nhau vẫn thẳng cột như Word hiển thị; thiếu tcW thì dùng lưới (tblGrid + gridSpan)."""
+    luoi_cot = []
+    try:
+        luoi_cot = [int(g.get(qn("w:w")) or 0) for g in t_el.tblGrid.findall(qn("w:gridCol"))]
+    except Exception:
+        pass
+    tong_luoi = sum(luoi_cot)
+    hang = []
     for tr in t_el.tr_lst:
-        row = [""] * (tr.grid_before or 0)
+        ds, x = [], 0.0
+        truoc = tr.grid_before or 0
+        x = float(sum(luoi_cot[:truoc])) if luoi_cot else 0.0
+        c0 = truoc
         for tc in tr.tc_lst:
             span = tc.grid_span or 1
-            row.append("^" if tc.vMerge == "continue" else _o_bang(ctx, tc, ctx.doc))
-            row.extend(["<"] * (span - 1))
-        row.extend([""] * (tr.grid_after or 0))
+            w = None
+            tcPr = tc.tcPr
+            if tcPr is not None and tcPr.find(qn("w:tcW")) is not None:
+                e = tcPr.find(qn("w:tcW"))
+                if e.get(qn("w:type")) in (None, "dxa") and e.get(qn("w:w")):
+                    w = float(e.get(qn("w:w")))
+            if w is None or w <= 0:
+                w = float(sum(luoi_cot[c0:c0 + span])) if luoi_cot else 1000.0 * span
+            ds.append((x, x + w))
+            x += w
+            c0 += span
+        hang.append(ds)
+    tong = [h[-1][1] for h in hang if h]
+    if tong:
+        chuan = max(tong)
+        for i, h in enumerate(hang):                # hàng ngắn hơn nhiều so với hàng dài nhất: co giãn cho cùng bề rộng
+            if h and abs(h[-1][1] - chuan) > 0.03 * chuan and not (tr_co_truoc(t_el, i)):
+                k = chuan / h[-1][1]
+                hang[i] = [(a * k, b * k) for a, b in h]
+    return hang
+
+
+def tr_co_truoc(t_el, i) -> bool:
+    return bool(t_el.tr_lst[i].grid_before or t_el.tr_lst[i].grid_after)
+
+
+def _doc_bang(ctx: _Ctx, t_el) -> list[str]:
+    vt = _vi_tri_o(t_el)
+    # Lưới chuẩn lấy từ hàng "điển hình" (số ô thường gặp nhất, hòa thì hàng nhiều ô hơn): các hàng vẽ lệch nhau
+    # (tác giả kéo ô lệch) được ép về cùng các cột đó; ô rộng hơn thì gộp qua nhiều cột chuẩn. Hàng có NHIỀU ô hơn hàng
+    # chuẩn (vd. một dòng chia đôi trong bảng toàn ô gộp) thì lưới được chia mịn thêm, tuyệt đối không dồn ô làm mất chữ.
+    from collections import Counter
+    dem = Counter(len(h) for h in vt if h)
+    if not dem:
+        return []
+    so_o = max(dem, key=lambda k: (dem[k], k))
+    tham_chieu = next(h for h in vt if len(h) == so_o)
+    bien = [tham_chieu[0][0]] + [b for _, b in tham_chieu]            # các mép cột của hàng chuẩn
+    tong_rong = (bien[-1] - bien[0]) or 1.0
+    dung_sai = 0.03 * tong_rong
+    for ds in vt:
+        if len(ds) > so_o:
+            for a, b in ds:
+                for x in (a, b):
+                    if all(abs(x - e) > dung_sai for e in bien):
+                        bien.append(x)
+    bien.sort()
+    tam = [(bien[k] + bien[k + 1]) / 2 for k in range(len(bien) - 1)]
+    def chi_so(x):
+        return min(range(len(bien)), key=lambda k: abs(bien[k] - x))
+    cot_chuan = [(chi_so(a), chi_so(b)) for a, b in tham_chieu]       # cột chuẩn k phủ các cột mịn [i0, i1)
+    tieu_de = _hang_tieu_de(t_el, ctx.doc)
+    luoi: list[list[str]] = []
+    for ri, (tr, ds) in enumerate(zip(t_el.tr_lst, vt)):
+        row = [""] * len(tam)
+        dau = 0
+        for ci, (tc, (a, b)) in enumerate(zip(tr.tc_lst, ds)):
+            if len(ds) == so_o:                       # cùng số ô với hàng chuẩn: ô thứ k nằm ở cột chuẩn k
+                j0, j1 = cot_chuan[ci]
+                j0 = max(j0, dau)
+                j1 = max(j1, j0 + 1)
+            else:
+                trong = [k for k, c in enumerate(tam) if a <= c <= b and k >= dau]
+                if trong:
+                    j0, j1 = trong[0], trong[-1] + 1
+                else:
+                    j0 = min(range(dau, len(tam)), key=lambda k: abs(tam[k] - (a + b) / 2)) if dau < len(tam) else len(tam) - 1
+                    j1 = j0 + 1
+            if j0 >= len(tam):
+                break
+            j1 = min(j1, len(tam))
+            dau = j1
+            row[j0] = "^" if tc.vMerge == "continue" else _o_bang(ctx, tc, ctx.doc, bo_dam=(tieu_de and len(t_el.tr_lst) > 1 and ri == 0))
+            for j in range(j0 + 1, j1):
+                row[j] = "<"
         luoi.append(row)
     n = max((len(r) for r in luoi), default=0)
     if n == 0:
         return []
     out = []
-    tieu_de = _hang_tieu_de(t_el, ctx.doc)
     for i, row in enumerate(luoi):
         row = row + [""] * (n - len(row))
         out.append("| " + " | ".join(row) + " |")
@@ -384,6 +599,54 @@ def _danh_dau_ngang(lines: list[Line], tu: int, sect) -> None:
             ln.ngang = True
 
 
+# ------------------------------------------------------------ mục lục tự động, ô nội dung (content control)
+MUC_LUC = "[[muc-luc]]"
+
+
+def _la_sdt_muc_luc(sdt) -> bool:
+    pr = sdt.find(qn("w:sdtPr"))
+    if pr is None:
+        return False
+    for g in pr.iter(qn("w:docPartGallery")):
+        if "table of contents" in (g.get(qn("w:val")) or "").lower():
+            return True
+    return any("TOC" in (x.text or "").upper().split() or (x.text or "").strip().upper().startswith("TOC")
+               for x in sdt.iter(qn("w:instrText")))
+
+
+def _la_dong_muc_luc(p_el, doc) -> bool:
+    """Đoạn thuộc mục lục tự động của Word (kiểu TOC n, hoặc chứa trường TOC)."""
+    try:
+        ten = (Paragraph(p_el, doc).style.name or "").lower()
+    except Exception:
+        ten = ""
+    if re.match(r"(toc|table of contents)\s*\d", ten) or ten.startswith("mục lục"):
+        return True
+    return any((x.text or "").strip().upper().startswith("TOC") for x in p_el.iter(qn("w:instrText")))
+
+
+def _con_cua_than(goc, ctx):
+    """Các phần tử con theo thứ tự đọc; content control (w:sdt) được mở ra, mục lục tự động thành dấu [[muc-luc]]."""
+    for child in goc.iterchildren():
+        if child.tag == qn("w:sdt"):
+            ct = child.find(qn("w:sdtContent"))
+            if ct is None:
+                continue
+            if _la_sdt_muc_luc(child):
+                ps = list(ct.iterchildren(qn("w:p")))
+                # đoạn đầu là tiêu đề của mục lục ("Mục lục", "Nội dung") nếu không phải dòng TOC
+                if ps and not _la_dong_muc_luc(ps[0], ctx.doc) and (ps[0].xpath("string(.)") or "").strip():
+                    yield ps[0]
+                yield _DAU_MUC_LUC
+                continue
+            yield from _con_cua_than(ct, ctx)
+        else:
+            yield child
+
+
+_DAU_MUC_LUC = object()      # phần tử giả báo 'ở đây có mục lục tự động'
+
+
 # ----------------------------------------------------------------------- vào/ra
 def doc_docx_ex(data: bytes) -> tuple[list[Line], list[str], dict]:
     """Đọc file .docx; trả về (các dòng, cảnh báo, hình {id: bản ghi hình})."""
@@ -391,8 +654,16 @@ def doc_docx_ex(data: bytes) -> tuple[list[Line], list[str], dict]:
     ctx = _Ctx(doc)
     lines: list[Line] = []
     dau_phan = 0                                  # chỉ số dòng bắt đầu của section hiện tại
-    for child in doc.element.body.iterchildren():
+    for child in _con_cua_than(doc.element.body, ctx):
+        if child is _DAU_MUC_LUC:
+            if not lines or lines[-1].raw != MUC_LUC:
+                lines.append(Line(DAU_DAC_BIET, kind="muc_luc", raw=MUC_LUC))
+            continue
         if child.tag == qn("w:p"):
+            if _la_dong_muc_luc(child, doc):
+                if not lines or lines[-1].raw != MUC_LUC:
+                    lines.append(Line(DAU_DAC_BIET, kind="muc_luc", raw=MUC_LUC))
+                continue
             _them_doan(lines, Paragraph(child, doc), ctx)
             pPr = child.pPr
             sect = pPr.find(qn("w:sectPr")) if pPr is not None else None

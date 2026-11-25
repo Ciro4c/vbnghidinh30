@@ -28,12 +28,34 @@ colors:
 
 # Cấu trúc 3 vùng cố định theo phần trăm chiều cao/ngang slide
 layout:
-  use_percent: true         # true: tính lại vị trí tiêu đề/nội dung/chân trang từ các phần trăm dưới đây
+  use_percent: false        # false: dùng đúng toạ độ khung ở mục title/body/master (bảng "Khung placeholder" của tài liệu hướng dẫn)
+                            # true: tính lại từ các phần trăm dưới đây
   title_zone_pct: 18        # vùng tiêu đề 15-20% phía trên
   center_zone_pct: 67       # vùng trọng tâm 65-70%
   footer_zone_pct: 15       # vùng chân trang 10-15%
   side_margin_pct: 6        # lề trái/phải 5-8% bề rộng
   vertical_margin_pct: 5    # lề trên/dưới >= 5%
+
+# Bảng màu theme PowerPoint (Design > Variants > Colors) theo tài liệu hướng dẫn
+theme_colors:
+  dk1: "1E293B"
+  lt1: "FFFFFF"
+  dk2: "475569"
+  lt2: "F8F9FA"
+  accent1: "0F172A"
+  accent2: "0284C7"
+  accent3: "B91C1C"
+  accent4: "D97706"
+  accent5: "059669"
+  accent6: "6D28D9"
+  hlink: "0284C7"
+  folHlink: "6B21A8"
+
+# Khung chân trang trên Master (x, y, rộng, cao; inch): nguồn trích dẫn trái, ngày/tên học phần giữa, số trang phải
+master:
+  footer: [0.67, 6.55, 5.0, 0.4]
+  date: [4.67, 6.55, 4.0, 0.4]
+  slide_number: [10.67, 6.55, 2.0, 0.4]
 
 header:
   top_bar: false
@@ -44,10 +66,10 @@ header:
 title:
   size_pt: 30               # 28-36 đậm, canh trái
   min_size_pt: 28
-  left_in: 0.8
-  top_in: 0.375
-  width_in: 11.73
-  height_in: 0.98
+  left_in: 0.67
+  top_in: 0.55
+  width_in: 12.0
+  height_in: 1.2
   chars_per_line_at_32: 62
   max_lines: 2
 
@@ -55,13 +77,13 @@ body:
   size_pt: 22               # 18-24
   sub_size_pt: 18
   line_spacing: 1.2
-  left_in: 0.8
-  top_in: 1.6
-  width_in: 11.73
-  height_in: 4.6
+  left_in: 0.67
+  top_in: 1.9
+  width_in: 12.0
+  height_in: 4.4
   width_with_image_in: 6.6
   max_bullets: 5            # = standard.chunking.max_chunks (được đồng bộ khi dựng)
-  max_lines: 9
+  max_lines: 10
   long_item_chars: 120
   bullet_color: "accent"
   highlight_numbers: true   # tô màu nhấn cho số liệu (%, tỷ, triệu...)
@@ -84,7 +106,7 @@ image:
 footer:
   size_pt: 12               # 12-14, xám chì
   line: true
-  line_y_in: 6.55
+  line_y_in: 6.5
   text_y_in: 6.65
 
 agenda:
@@ -134,7 +156,7 @@ standard:
     max_chunks: 5           # tối đa 3-5 khối ý/slide
     max_lines_per_chunk: 5
     max_words_per_line: 7   # mỗi dòng 5-7 từ
-    long_item: "warn"       # warn = chỉ cảnh báo | notes = giữ ý chính trên slide, chuyển cả câu vào ghi chú | keep
+    long_item: "notes"      # warn = chỉ cảnh báo | notes = giữ ý chính trên slide, chuyển cả câu vào ghi chú | keep
     keyword_words: 12       # độ dài ý chính khi long_item = notes
   contrast:
     level: "AA"             # AA | AAA

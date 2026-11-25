@@ -73,3 +73,43 @@ signature:
 
 page_number:
   size_pt: 14
+
+ra_soat:
+  quyen_han_mau: "^(T/M|TM\\.|KT\\.|T/L|TL\\.|Q\\.)"
+  ky_hieu_theo_loai: false
+  so_duoi_10_them_0: false
+  ky_hieu_mau: "^[A-ZĐ]{1,8}(/[A-ZĐ]{1,8})+$"
+  ky_hieu_mau_nd: "Văn bản của Đảng ghi ký hiệu dạng loại/cơ quan, ví dụ QĐ/TW hoặc TB/VPTW (có “/”, không có dấu cách)."
+
+form:
+  co_quan_chu_quan: "(thường để trống)"
+  co_quan_ban_hanh: "BAN CHẤP HÀNH TRUNG ƯƠNG"
+  so: "12"
+  ky_hieu: "QĐ/TW"
+  dia_danh: "Hà Nội"
+  quyen_han_ky: "T/M BAN BÍ THƯ"
+  chuc_vu_ky: "CHÁNH VĂN PHÒNG"
+  nguoi_ky: "Nguyễn Văn A"
+
+# Văn bản của Đảng (HD 05-HD/BTCTW): chỉ các loại thuộc hệ thống văn bản của Đảng
+loai_van_ban:
+  cong_van: {}
+  nghi_quyet: {}
+  quyet_dinh:
+    muc: [{ten: "Điều 1", khop: 'điều\s*1\b'}]
+  chi_thi: {}
+  ket_luan: {}
+  quy_che: {}
+  quy_dinh: {}
+  thong_cao: {}
+  thong_bao: {}
+  huong_dan: {}
+  chuong_trinh: {}
+  ke_hoach:
+    muc: [{ten: "Mục đích, yêu cầu", khop: 'mục đích|yêu cầu|mục tiêu'}, {ten: "Tổ chức thực hiện", khop: 'tổ chức thực hiện|phân công'}]
+  bao_cao:
+    muc: [{ten: "Kết quả", khop: 'kết quả|tình hình'}, {ten: "Phương hướng/kiến nghị", khop: 'phương hướng|nhiệm vụ|kiến nghị'}]
+  to_trinh: {}
+  bien_ban: {}
+  giay_moi: {}
+  giay_gioi_thieu: {}

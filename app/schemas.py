@@ -36,7 +36,8 @@ TEN_LOAI = {
 
 
 def _kiem_tra_loai(v):
-    if v not in TEN_LOAI:
+    from .loai_vb import tat_ca_khoa
+    if v not in TEN_LOAI and v not in tat_ca_khoa():
         raise ValueError(f"Loại văn bản không hợp lệ: {v!r}")
     return v
 

@@ -35,7 +35,7 @@ body:
   height_in: 5.0
   width_with_image_in: 6.4
   max_bullets: 7          # quá thì tách sang slide "(tiếp)"
-  max_lines: 9
+  max_lines: 10
   long_item_chars: 180    # đoạn dài hơn thì cảnh báo nên rút gọn
 
 table:

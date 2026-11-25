@@ -150,6 +150,9 @@ noi_nhan:
 # Số trang: từ trang 2, canh giữa lề trên, cỡ 13-14
 page_number:
   size_pt: 13
+  vi_tri: tren_giua        # tren_giua | duoi_giua | tren_phai | duoi_phai (dùng khi đánh số trang cho PDF)
+  dinh_dang: "{n}"         # {n} = số trang, {tong} = tổng số trang
+  tu_trang: 2              # bắt đầu từ trang thứ mấy (NĐ 30: từ trang 2)
 
 # Dấu trang (bookmark) khi áp dụng cho PDF: dò các dòng sau trong văn bản để gắn dấu trang
 # cap: 1 = cấp cao nhất. Mỗi mẫu là biểu thức chính quy áp lên từng dòng đã bỏ khoảng trắng đầu/cuối.
@@ -163,3 +166,74 @@ bookmark:
     - {cap: 2, ten: "", mau: "^Điều\\s+\\d+[a-zA-Z]?\\s*\\."}
     - {cap: 1, ten: "", mau: "^(PHỤ LỤC|Phụ lục)\\b"}
     - {cap: 1, ten: "Nơi nhận", mau: "^Nơi nhận\\s*:"}
+
+# Rà soát thông tin nhập vào form theo thể thức (xem app/ra_soat.py)
+ra_soat:
+  ky_hieu_theo_loai: true      # ký hiệu có chữ viết tắt tên loại văn bản (QĐ, TB, BC...) trừ công văn
+  so_duoi_10_them_0: true
+  noi_nhan_luu_vt: true        # dòng cuối nơi nhận “Lưu: VT, ...”
+  trich_yeu_bat_buoc: true
+  trich_yeu_ve_viec: true
+
+# Gợi ý hiển thị trong form (ô nhập mờ) theo thể thức
+form:
+  co_quan_chu_quan: "UBND TỈNH ABC"
+  co_quan_ban_hanh: "SỞ GIÁO DỤC VÀ ĐÀO TẠO"
+  so: "123 (để trống nếu điền tay)"
+  ky_hieu: "SGDĐT-VP (công văn) hoặc QĐ-UBND"
+  dia_danh: "Hà Nội"
+  quyen_han_ky: "KT. GIÁM ĐỐC"
+  chuc_vu_ky: "PHÓ GIÁM ĐỐC"
+  nguoi_ky: "Nguyễn Văn A"
+
+# Loại văn bản của thể thức này + mục nội dung thường có (dùng để rà soát; xem app/loai_vb.py)
+# muc: danh sách {ten, khop (regex tìm trong nội dung, không phân biệt hoa thường)}
+loai_van_ban:
+  cong_van: {}
+  quyet_dinh:
+    muc: [{ten: "Điều 1 (nội dung quyết định)", khop: 'điều\s*1\b'}, {ten: "Điều khoản thi hành/hiệu lực", khop: 'hiệu lực|thi hành|chịu trách nhiệm'}]
+  to_trinh:
+    muc: [{ten: "Sự cần thiết/căn cứ", khop: 'sự cần thiết|căn cứ|lý do'}, {ten: "Nội dung trình", khop: 'nội dung|đề xuất'}, {ten: "Đề nghị/kiến nghị", khop: 'đề nghị|kiến nghị|xin'}]
+  thong_bao:
+    muc: [{ten: "Nội dung thông báo", khop: '.'}]
+  bao_cao:
+    muc: [{ten: "Kết quả/tình hình thực hiện", khop: 'kết quả|tình hình|thực hiện'}, {ten: "Tồn tại, hạn chế", khop: 'tồn tại|hạn chế|khó khăn'}, {ten: "Phương hướng/kiến nghị", khop: 'phương hướng|nhiệm vụ|kiến nghị|đề xuất'}]
+  ke_hoach:
+    muc: [{ten: "Mục đích, yêu cầu", khop: 'mục đích|yêu cầu|mục tiêu'}, {ten: "Nội dung/nhiệm vụ", khop: 'nội dung|nhiệm vụ'}, {ten: "Tổ chức thực hiện", khop: 'tổ chức thực hiện|phân công|thời gian'}]
+  bien_ban:
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào hồi|lúc'}, {ten: "Địa điểm", khop: 'địa điểm|tại'}, {ten: "Thành phần tham dự", khop: 'thành phần|tham dự|có mặt'}, {ten: "Nội dung/diễn biến", khop: 'nội dung|diễn biến|ý kiến'}]
+  chi_thi: {}
+  huong_dan: {}
+  chuong_trinh: {}
+  quy_che:
+    muc: [{ten: "Chương/Điều quy định chung", khop: 'quy định chung|phạm vi|đối tượng|điều\s*1\b'}]
+  quy_dinh: {}
+  nghi_quyet: {}
+  giay_moi:
+    muc: [{ten: "Thời gian", khop: 'thời gian|vào lúc|lúc'}, {ten: "Địa điểm", khop: 'địa điểm|tại'}]
+  giay_gioi_thieu: {}
+  de_an: {}
+  phuong_an: {}
+  nghi_dinh: {}
+  thong_tu: {}
+  thong_tu_lien_tich: {}
+  cong_dien: {}
+  thong_cao: {}
+  ket_luan: {}
+
+# Ngắt trang trước các phần lớn của tài liệu dài (chuong: trước "Chương I"; tieu_de: regex tiêu đề riêng như MỤC LỤC, PHỤ LỤC).
+# Mặc định bật cho mọi thể thức (văn bản không có Chương/Mục lục/Phụ lục thì không ảnh hưởng); tắt bằng chuong: false.
+ngat_trang:
+  chuong: true
+  tieu_de: 'MỤC LỤC|LỜI|MỞ ĐẦU|PHỤ LỤC|TÀI LIỆU THAM KHẢO|DANH MỤC' 
+
+# Tên kiểu đề mục (Styles) in vào file Word, theo cấp: 1 = Chương/Phần/Mục lục/Phụ lục, 2 = Mục, 3 = Tiểu mục/Điều.
+# Chỉ các kiểu đề mục đang dùng được tạo; các kiểu mẫu thừa (Heading 1-9, Title...) bị xóa nếu # don_style: "thua" = xóa kiểu không dùng, luôn giữ Heading 1-5 | "toi_gian" = xóa cả Heading không dùng | "giu" = giữ nguyên mọi kiểu
+don_style: thua
+# Mục lục tự động: true = Word hỏi cập nhật số trang khi mở file (hộp thoại "update fields"); false = dùng số trang ước tính sẵn
+cap_nhat_muc_luc: false.
+ten_heading: ["Phần", "Chương", "Mục", "Điều", "Khoản"]
+# don_style: "thua" = xóa kiểu không dùng, luôn giữ Heading 1-5 | "toi_gian" = xóa cả Heading không dùng | "giu" = giữ nguyên mọi kiểu
+don_style: thua
+# Mục lục tự động: true = Word hỏi cập nhật số trang khi mở file (hộp thoại "update fields"); false = dùng số trang ước tính sẵn
+cap_nhat_muc_luc: false

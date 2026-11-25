@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from lxml import etree
 from pptx import Presentation
 from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_CONNECTOR
+from pptx.enum.shapes import MSO_CONNECTOR, PP_PLACEHOLDER
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
@@ -21,8 +21,13 @@ from ..importers.pptx_reader import SlideIn
 from ..profile import load_profile
 from .common import tinh_do_rong_cot
 
+from pathlib import Path
+_FONT_DIR = Path(__file__).resolve().parent.parent / "fonts"
+_FONT_DO: dict = {}
+
 RE_TLTK = re.compile(r"tài liệu tham khảo|references|bibliography", re.I)
-RE_SO = re.compile(r"(\d[\d.,]*\s?(?:%|tỷ|triệu|nghìn|ngàn|lần|đồng|VND|USD|\$)?)")
+RE_SO = re.compile(r"(\d[\d.,]*\s?(?:%|°\s?C|°|tỷ|triệu|nghìn|ngàn|đồng|VND|USD|km|cm|mm|kg|tấn|lít|giây|phút|giờ|lần|người|vụ|mét|m²|m³|m|M|C|s)(?:\s?/\s?(?:s|giây|phút|giờ|h|ngày))?(?![A-Za-zÀ-ỹ0-9]))")
+RE_STT = re.compile(r"^((?:\d+|[a-zđ])[.)]\s+)")
 RE_CAM_ON = re.compile(r"cảm ơn|thank|hỏi\s*đáp|q\s*&\s*a|câu hỏi|thảo luận", re.I)
 
 KIEU_SLIDE = {"chuan": "slide_chuan", "hoc_thuat": "slide_hoc_thuat"}     # tên gọi ngoài giao diện -> profile
@@ -63,6 +68,12 @@ class SlideBuilder:
         self.prs.slide_height = Inches(prof["slide"]["height_in"])
         self.warns: list[str] = []
         self.prs.core_properties.comments = ban_quyen.GHI_CHU
+        from .slide_master import ap_master
+        lay = ap_master(self.prs, prof, self.vung_chan)
+        self.lay_tieu_de = lay.get("tieu_de") or self.prs.slide_layouts[0]
+        self.lay_noi_dung = lay.get("noi_dung") or self.prs.slide_layouts[-1]
+        self.so_tieu_de_nho = 0
+        self.so_tieu_de_cat = 0
 
     # ---------- tiện ích ----------
     def _ap_vung(self):
@@ -137,23 +148,28 @@ class SlideBuilder:
         r.line.fill.background()
         return r
 
-    def _footer(self, slide, so_slide=True):
+    def _footer(self, slide, so_slide=True, duong_ke=True):
         pr, ft = self.prof, self.prof["footer"]
         W, H = pr["slide"]["width_in"], pr["slide"]["height_in"]
         text = self.info.don_vi or self.info.ten_bai
-        xl = pr["title"]["left_in"] if self.vung_chan else 0.6
-        yl = (self.vung_chan + 0.1) if self.vung_chan else H - 0.62
-        if ft.get("line"):
+        xl = pr["title"]["left_in"] if (self.vung_chan or pr.get("master")) else 0.6
+        yl = (self.vung_chan + 0.1) if self.vung_chan else ft.get("line_y_in", H - 0.62)
+        mt = {k: tuple(v) for k, v in (pr.get("master") or {}).items()}
+        fx, fy, fw, fh = mt.get("footer", (xl, yl + 0.07, 9, 0.35))
+        nx, ny, nw, nh = mt.get("slide_number", (W - xl - 1.0, yl + 0.07, 1.0, 0.35))
+        if ft.get("line") and duong_ke:
             self._duong_ke(slide, xl, yl, W - xl, yl, self.c.get("border", self.c["muted"]), 0.75)
         if text:
-            tb = slide.shapes.add_textbox(Inches(xl), Inches(yl + 0.07), Inches(9), Inches(0.35))
+            tb = slide.shapes.add_textbox(Inches(fx), Inches(fy), Inches(fw), Inches(fh))
+            tb.name = "vbn-chan-trang"
             tb.text_frame.word_wrap = True
             tb.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
             r = tb.text_frame.paragraphs[0].add_run()
             r.text = text
             self._style_run(r, ft["size_pt"], color=self.c["muted"])
         if so_slide:
-            tb = slide.shapes.add_textbox(Inches(W - xl - 1.0), Inches(yl + 0.07), Inches(1.0), Inches(0.35))
+            tb = slide.shapes.add_textbox(Inches(nx), Inches(ny), Inches(nw), Inches(nh))
+            tb.name = "vbn-so-trang"
             p = tb.text_frame.paragraphs[0]
             p.alignment = PP_ALIGN.RIGHT
             fld = etree.SubElement(p._p, qn("a:fld"))
@@ -188,7 +204,7 @@ class SlideBuilder:
     def slide_tieu_de(self, ten_bai: str):
         pr, ts = self.prof, self.prof["title_slide"]
         trai = ts.get("layout", "giua") == "trai"
-        s = self.prs.slides.add_slide(self.prs.slide_layouts[0])
+        s = self.prs.slides.add_slide(self.lay_tieu_de)
         self._nen_toi(s)
         W, H = pr["slide"]["width_in"], pr["slide"]["height_in"]
         if trai:
@@ -233,7 +249,10 @@ class SlideBuilder:
         cl, ts = self.prof["closing"], self.prof["title_slide"]
         trai = ts.get("layout", "giua") == "trai"
         W, H = self.prof["slide"]["width_in"], self.prof["slide"]["height_in"]
-        s = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        s = self.prs.slides.add_slide(self.lay_tieu_de)         # không dùng layout nội dung: tránh nét trang trí nền sáng
+        for ph in list(s.placeholders):
+            if ph.placeholder_format.type not in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
+                ph._element.getparent().remove(ph._element)
         self._nen_toi(s)
         if trai and self.c.get("panel"):
             self._khoi(s, W - 3.4, 0, 3.4, H, self.c["panel"])
@@ -259,44 +278,65 @@ class SlideBuilder:
                 rr.text = ln
                 self._style_run(rr, ts["sub_size_pt"], False, self.c["on_primary"])
 
+    def _do_rong_in(self, text: str, size: float, bold: bool = True) -> float:
+        """Bề rộng (inch) của một dòng chữ không chân (đo bằng phông Liberation Sans, cùng số đo với Arial)."""
+        try:
+            from PIL import ImageFont
+            f = _FONT_DO.get(bold)
+            if f is None:
+                f = _FONT_DO[bold] = ImageFont.truetype(str(_FONT_DIR / ("LiberationSans-Bold.ttf" if bold else "LiberationSans-Regular.ttf")), 100)
+            return f.getlength(text) * size / 100 / 72
+        except Exception:
+            return len(text) * size * 0.62 / 72
+
+    def _so_dong(self, text: str, size: float, rong: float, bold: bool = True) -> int:
+        n, cur = 1, ""
+        for w in text.split():
+            cand = (cur + " " + w).strip()
+            if cur and self._do_rong_in(cand, size, bold) > rong:
+                n += 1
+                cur = w
+            else:
+                cur = cand
+        return n
+
+    def _vua_tieu_de(self, tieu_de: str):
+        """Chọn cỡ chữ để tiêu đề nằm vừa số dòng tối đa (đo thật theo bề rộng chữ). Quá dài thì rút gọn.
+        Trả về (cỡ chữ, tiêu đề, tiêu đề gốc nếu bị rút gọn)."""
+        tp = self.prof["title"]
+        rong = tp["width_in"] - 0.2 - 0.15
+        toi_da = tp.get("max_lines", 2)
+        san = min(tp.get("fit_min_pt", tp["min_size_pt"] - 4), tp["min_size_pt"])
+        size = tp["size_pt"]
+        while size > san and self._so_dong(tieu_de, size, rong) > toi_da:
+            size -= 1
+        if size < tp["min_size_pt"]:
+            self.so_tieu_de_nho += 1
+        if self._so_dong(tieu_de, size, rong) <= toi_da:
+            return size, tieu_de, None
+        tu = tieu_de.split()
+        while len(tu) > 3 and self._so_dong(" ".join(tu) + "…", size, rong) > toi_da:
+            tu.pop()
+        self.so_tieu_de_cat += 1
+        return size, " ".join(tu).rstrip(" ,;:-") + "…", tieu_de
+
     def _tao_slide(self, tieu_de: str):
         pr, tp = self.prof, self.prof["title"]
-        s = self.prs.slides.add_slide(self.prs.slide_layouts[5])   # Title Only
-        W = pr["slide"]["width_in"]
-        hd = pr.get("header", {})
-        if hd.get("top_bar", True):
-            bar = s.shapes.add_shape(1, 0, 0, self.prs.slide_width, Inches(0.12))
-            bar.fill.solid()
-            bar.fill.fore_color.rgb = _rgb(self.c["primary"])
-            bar.line.fill.background()
-        if hd.get("marker"):                                          # khối nhấn màu bên trái tiêu đề
-            self._khoi(s, tp["left_in"] - 0.3, tp["top_in"] + 0.17, 0.09, tp["height_in"] - 0.34, self.c["accent"])
+        s = self.prs.slides.add_slide(self.lay_noi_dung)           # Title Only: đã có khối nhấn, đường kẻ
         t = s.shapes.title
         t.left, t.top = Inches(tp["left_in"]), Inches(tp["top_in"])
         t.width, t.height = Inches(tp["width_in"]), Inches(tp["height_in"])
         tf = t.text_frame
         tf.word_wrap = True
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        size = tp["size_pt"]
-        cpl = tp["chars_per_line_at_32"]
-        while size > tp["min_size_pt"] and len(tieu_de) > cpl * 32 / size * 1.0:
-            size -= 2
-        toi_da = int(cpl * 32 / size * tp.get("max_lines", 2))     # tiêu đề không được tràn ra ngoài khung
-        if len(tieu_de) > toi_da:
-            cat = tieu_de.rfind(" ", 0, toi_da - 1)
-            tieu_de_goc = tieu_de
-            tieu_de = tieu_de[:cat if cat > 10 else toi_da - 1].rstrip(" ,;:-") + "…"
-            self.warns.append(f"Tiêu đề quá dài, đã rút gọn để không tràn slide: “{tieu_de_goc[:60]}…”.")
+        size, hien, goc = self._vua_tieu_de(tieu_de)
         tf.paragraphs[0].alignment = PP_ALIGN.LEFT
         r = tf.paragraphs[0].add_run()
-        r.text = tieu_de
+        r.text = hien
         self._style_run(r, size, True, self.c["primary"])
-        kieu_ke = hd.get("underline", "dai")
-        if kieu_ke != "khong":
-            y_ke = tp["top_in"] + tp["height_in"] + 0.05
-            mau_ke = self.c["accent"] if kieu_ke == "dai" else self.c.get("border", self.c["accent"])
-            self._duong_ke(s, tp["left_in"], y_ke, W - tp["left_in"], y_ke, mau_ke, hd.get("underline_pt", 2))
-        self._footer(s)
+        if goc:
+            s.notes_slide.notes_text_frame.text = "Tiêu đề đầy đủ: " + goc
+        self._footer(s, duong_ke=False)
         return s
 
     def _body_box(self, s, width_in):
@@ -324,7 +364,13 @@ class SlideBuilder:
             self._bullet(p, level, "dot" if gach else "none")
             size = b["size_pt"] if level == 0 else b["sub_size_pt"]
             if b.get("highlight_numbers") and self.c.get("highlight"):
-                for kt, doan in enumerate(RE_SO.split(text)):
+                m0 = RE_STT.match(text)                  # số thứ tự "2." / "a)" là đánh số, không tô màu
+                dau = m0.group(1) if m0 else ""
+                if dau:
+                    r = p.add_run()
+                    r.text = dau
+                    self._style_run(r, size)
+                for kt, doan in enumerate(RE_SO.split(text[len(dau):])):
                     if not doan:
                         continue
                     r = p.add_run()
@@ -338,18 +384,30 @@ class SlideBuilder:
                 r.text = text
                 self._style_run(r, size)
 
+    @staticmethod
+    def _y_chinh(tx: str, mx: int) -> str:
+        """Ý chính của một đoạn dài: câu đầu, nếu vẫn dài thì cắt ở dấu phẩy/chấm phẩy gần nhất trong giới hạn."""
+        cau = re.split(r"(?<=[.!?;:…])\s+", tx.strip(), maxsplit=1)[0]
+        tu = cau.split()
+        if len(tu) <= mx:
+            return cau.rstrip(" ,;:-")
+        gan = " ".join(tu[:mx])
+        k = max(gan.rfind(","), gan.rfind(";"))
+        if k > len(gan) * 0.5:
+            return gan[:k].rstrip(" ,;:-") + "…"
+        return gan.rstrip(" ,;:-") + "…"
+
     def _rut_y(self, sl):
-        """long_item = notes: giữ ý chính trên slide, câu đầy đủ chuyển vào ghi chú."""
+        """long_item = notes: giữ ý chính trên slide, câu đầy đủ chuyển vào ghi chú (không mất chữ)."""
         ck = self.prof.get("standard", {}).get("chunking", {})
         if ck.get("long_item") != "notes":
             return sl.items
         mx = ck.get("keyword_words", 12)
         moi, bo = [], []
         for lv, tx, g in sl.items:
-            tu = tx.split()
-            if len(tu) > mx:
+            if len(tx.split()) > mx:
                 bo.append(tx)
-                tx = " ".join(tu[:mx]).rstrip(" ,;:-") + "…"
+                tx = self._y_chinh(tx, mx)
             moi.append((lv, tx, g))
         if bo:
             sl.notes = (sl.notes + "\n\n" if sl.notes else "") + "Nội dung đầy đủ:\n" + "\n".join(bo)
@@ -426,28 +484,128 @@ class SlideBuilder:
         return out
 
     def _chia_trang(self, items, width_in):
+        """Chia ý thành các slide; sau đó cân lại để không còn slide chỉ có một ý lẻ loi."""
         b = self.prof["body"]
-        pages, cur, lines, n = [], [], 0, 0
-        for it in items:
-            need = self._uoc_luong_dong(it[1], it[0], width_in)
-            if cur and (lines + need > b["max_lines"] or n + 1 > b["max_bullets"]):
+        need = [self._uoc_luong_dong(it[1], it[0], width_in) for it in items]
+
+        def chia(max_lines, max_n):
+            pages, cur, lines, n = [], [], 0, 0
+            for it, nd in zip(items, need):
+                if cur and (lines + nd > max_lines or n + 1 > max_n):
+                    pages.append(cur)
+                    cur, lines, n = [], 0, 0
+                cur.append(it)
+                lines += nd
+                n += 1 if it[0] == 0 else 0
+            if cur:
                 pages.append(cur)
-                cur, lines, n = [], 0, 0
-            cur.append(it)
-            lines += need
-            n += 1
-        if cur:
-            pages.append(cur)
-        return pages or [[]]
+            return pages or [[]]
+        pages = chia(b["max_lines"], b["max_bullets"])
+        if len(pages) >= 2:
+            k = len(pages)
+            gioi_han_dong = max(math.ceil(sum(need) / k), max(need))
+            gioi_han_y = max(math.ceil(len(items) / k), 1)
+            cb = chia(min(gioi_han_dong, b["max_lines"]), min(gioi_han_y, b["max_bullets"]))
+            if len(cb) == k:
+                pages = cb
+        return pages
+
+    # ---------- slide sơ đồ: chép nguyên hình vẽ gốc ----------
+    def _chep_so_do(self, s, sl) -> bool:
+        """Chép các hình/chữ của slide sơ đồ gốc vào slide mới, thu phóng vừa vùng nội dung (cả cỡ chữ).
+        Chỉ tiêu đề và chân trang được chuẩn hóa; phần hình vẽ giữ nguyên để không mất chữ/mũi tên."""
+        import copy
+        try:
+            src = sl.nguon
+            tree = src.shapes._spTree
+            cho = {id(e) for e in sl.bo_el}
+            els = []
+            for e in tree:
+                ten = etree.QName(e).localname
+                if ten not in ("sp", "pic", "grpSp", "cxnSp", "graphicFrame") or id(e) in cho:
+                    continue
+                ph = e.xpath("./p:nvSpPr/p:nvPr/p:ph/@type | ./p:nvPicPr/p:nvPr/p:ph/@type")
+                co_ph = bool(e.xpath("./p:nvSpPr/p:nvPr/p:ph | ./p:nvPicPr/p:nvPr/p:ph"))
+                if co_ph and (not e.xpath("./p:spPr/a:xfrm") or ph and ph[0] in ("title", "ctrTitle", "sldNum", "dt", "ftr", "pic")
+                              or not "".join(e.xpath(".//a:t/text()")).strip()):
+                    continue            # tiêu đề, số trang, ô giữ chỗ trống: do mẫu lo. Khung chữ thân bài có vị trí riêng thì giữ
+                if ten == "graphicFrame" and not e.xpath(".//a:tbl"):
+                    continue
+                els.append(e)
+            if not els:
+                return False
+
+            def hop(e):
+                x = e.xpath("./p:spPr/a:xfrm | ./p:grpSpPr/a:xfrm | ./p:xfrm")
+                if not x or x[0].find(qn("a:off")) is None:
+                    return None
+                o, z = x[0].find(qn("a:off")), x[0].find(qn("a:ext"))
+                return int(o.get("x")), int(o.get("y")), int(z.get("cx")), int(z.get("cy")), x[0]
+            hs = [(e, hop(e)) for e in els]
+            hs = [(e, h) for e, h in hs if h]
+            if not hs:
+                return False
+            x0 = min(h[0] for _, h in hs)
+            y0 = min(h[1] for _, h in hs)
+            x1 = max(h[0] + h[2] for _, h in hs)
+            y1 = max(h[1] + h[3] for _, h in hs)
+            b = self.prof["body"]
+            tw, th = Inches(b["width_in"]), Inches(b["height_in"] - 0.1)
+            k = min(tw / max(x1 - x0, 1), th / max(y1 - y0, 1), 1.25)
+            ox = Inches(b["left_in"]) + (tw - (x1 - x0) * k) / 2
+            oy = Inches(b["top_in"]) + (th - (y1 - y0) * k) / 2
+            cay = s.shapes._spTree
+            nid = 3000
+            for e, h in hs:
+                n = copy.deepcopy(e)
+                xf = hop(n)[4]
+                xf.find(qn("a:off")).set("x", str(int(ox + (h[0] - x0) * k)))
+                xf.find(qn("a:off")).set("y", str(int(oy + (h[1] - y0) * k)))
+                xf.find(qn("a:ext")).set("cx", str(int(h[2] * k)))
+                xf.find(qn("a:ext")).set("cy", str(int(h[3] * k)))
+                for r in n.iter(qn("a:rPr"), qn("a:defRPr"), qn("a:endParaRPr")):
+                    if r.get("sz"):
+                        r.set("sz", str(max(600, int(int(r.get("sz")) * k))))
+                for kk in n.xpath(".//a:hlinkClick | .//a:hlinkHover"):
+                    kk.getparent().remove(kk)
+                ok = True
+                for bl in n.iter(qn("a:blip")):
+                    rid = bl.get(qn("r:embed"))
+                    bl.attrib.pop(qn("r:link"), None)
+                    try:
+                        blob = src.part.related_part(rid).blob
+                        _, nr = s.part.get_or_add_image_part(io.BytesIO(blob))
+                        bl.set(qn("r:embed"), nr)
+                    except Exception:
+                        ok = False
+                if not ok:
+                    continue
+                for c in n.iter(qn("p:cNvPr")):
+                    nid += 1
+                    c.set("id", str(nid))
+                cay.append(n)
+            return True
+        except Exception as ex:                                # không chép được thì quay về cách gom chữ
+            self.warns.append(f"Slide “{sl.title}”: không giữ nguyên được hình vẽ gốc ({ex}); đã gom chữ.")
+            return False
 
     # ---------- hình ----------
-    def _them_anh(self, s, blob, ext, x, y, w, h):
+    def _them_anh(self, s, blob, ext, x, y, w, h, chu=""):
         """Đặt hình vừa khung (x, y, w, h), canh giữa. Hình hỏng thì báo cảnh báo, không dừng."""
         try:
             from PIL import Image
             iw, ih = Image.open(io.BytesIO(blob)).size
         except Exception:
             iw, ih = 4, 3
+        if chu:                                             # chừa chỗ cho chú thích dưới hình
+            tbx = s.shapes.add_textbox(Inches(x), Inches(y + h - 0.45), Inches(w), Inches(0.45))
+            tbx.text_frame.word_wrap = True
+            pp = tbx.text_frame.paragraphs[0]
+            pp.alignment = PP_ALIGN.CENTER
+            rr = pp.add_run()
+            rr.text = chu
+            self._style_run(rr, 16, True, self.c["primary"])
+            h -= 0.5
         scale = min(w / iw, h / ih)
         pw, ph = iw * scale, ih * scale
         try:
@@ -472,9 +630,9 @@ class SlideBuilder:
         return [(x + (k % 2) * (cw + gap), y + (k // 2) * (ch + gap), cw, ch) for k in range(n)]
 
     def _dat_anh(self, s, anh, x, y, w, h):
-        for (blob, ext), (cx, cy, cw, ch) in zip(anh, self._luoi_anh(len(anh), x, y, w, h,
-                                                                       self.prof["image"]["gap_in"])):
-            self._them_anh(s, blob, ext, cx, cy, cw, ch)
+        for a, (cx, cy, cw, ch) in zip(anh, self._luoi_anh(len(anh), x, y, w, h,
+                                                           self.prof["image"]["gap_in"])):
+            self._them_anh(s, a[0], a[1], cx, cy, cw, ch, a[2] if len(a) > 2 else "")
 
     # ---------- bảng ----------
     def _cao_hang(self, row, widths, size):
@@ -491,7 +649,7 @@ class SlideBuilder:
 
     def _chia_bang(self, rows, widths, size):
         """Chia bảng thành các trang; mỗi trang lặp lại hàng đầu; không cắt ngang ô gộp dọc."""
-        max_h = self.prof["body"]["height_in"]
+        max_h = self.prof["body"]["height_in"] - getattr(self, "_tru_cao", 0.0)
         hh = self._cao_hang(rows[0], widths, size)
         pages, cur, h = [], [0], hh
         for i in range(1, len(rows)):
@@ -504,11 +662,11 @@ class SlideBuilder:
         pages.append(cur)
         return pages
 
-    def _them_bang(self, s, rows, size, widths):
+    def _them_bang(self, s, rows, size, widths, y=None):
         tb, b = self.prof["table"], self.prof["body"]
         nr, nc = len(rows), len(widths)
         heights = [self._cao_hang(r, widths, size) for r in rows]
-        shp = s.shapes.add_table(nr, nc, Inches(b["left_in"]), Inches(b["top_in"]),
+        shp = s.shapes.add_table(nr, nc, Inches(b["left_in"]), Inches(b["top_in"] if y is None else y),
                                  Inches(sum(widths)), Inches(sum(heights)))
         tbl = shp.table
         for j, w in enumerate(widths):
@@ -552,12 +710,17 @@ class SlideBuilder:
                     except Exception:
                         pass
 
-    def _dung_bang(self, rows, tieu, tao, ten_slide=""):
+    def _dung_bang(self, rows, tieu, tao, ten_slide="", chu_thich=None):
         """Dựng một bảng lên một hoặc nhiều slide (tự chọn cỡ chữ, tách trang). tieu(loai) -> tiêu đề."""
         tb, b = self.prof["table"], self.prof["body"]
         nc = max(len(r) for r in rows)
         rows = [r + [""] * (nc - len(r)) for r in rows]
         widths = [x / 25.4 for x in tinh_do_rong_cot(rows, b["width_in"] * 25.4, tb["min_col_in"] * 25.4)]
+        ct_h = 0.0
+        if chu_thich:
+            ct_size = 18
+            ct_h = sum(self._so_dong(t, ct_size, b["width_in"] - 0.2, True) for t in chu_thich) * ct_size * 1.25 / 72 + 0.15
+        self._tru_cao = ct_h
         chon = None
         for size in tb["font_sizes_pt"]:
             pages = self._chia_bang(rows, widths, size)
@@ -573,14 +736,38 @@ class SlideBuilder:
                               f"{len(pages)} slide (lặp lại hàng tiêu đề).")
         for k, idx in enumerate(pages):
             s = self._tao_slide(tieu("bảng" if k == 0 else "tiếp"))
-            self._them_bang(s, [rows[i] for i in idx], size, widths)
+            y = b["top_in"]
+            if chu_thich and k == 0:
+                tbx = s.shapes.add_textbox(Inches(b["left_in"]), Inches(y), Inches(b["width_in"]), Inches(ct_h))
+                tbx.text_frame.word_wrap = True
+                for n, t in enumerate(chu_thich):
+                    pp = tbx.text_frame.paragraphs[0] if n == 0 else tbx.text_frame.add_paragraph()
+                    rr = pp.add_run()
+                    rr.text = t
+                    self._style_run(rr, 18, True, self.c["primary"])
+                y += ct_h
+            self._them_bang(s, [rows[i] for i in idx], size, widths, y)
             tao.append(s)
 
     # ---------- một slide nội dung ----------
     def slide_noi_dung(self, sl: SlideIn, stt: int):
         b, im = self.prof["body"], self.prof["image"]
-        anh = list(sl.images)
+        cap = list(sl.chu_anh) + [""] * len(sl.images)
+        anh = [(a[0], a[1], cap[i]) for i, a in enumerate(sl.images)]
+        if sl.so_do and sl.nguon is not None and (self.prof.get("diagram") or {}).get("mode", "giu_nguyen") == "giu_nguyen":
+            s = self._tao_slide(sl.title)
+            if self._chep_so_do(s, sl):
+                if sl.notes:
+                    s.notes_slide.notes_text_frame.text = sl.notes
+                return
+            self.prs.slides._sldIdLst.remove(self.prs.slides._sldIdLst[-1])    # bỏ slide trống, dựng lại bằng chữ
+        chu_thich = []
+        if sl.tables and sl.items and not anh and len(sl.items) <= 3 and sum(len(x[1]) for x in sl.items) <= 400:
+            chu_thich = [x[1] for x in sl.items]            # tên bảng nằm cùng slide với bảng
+            sl.items = []
         sl.items = self._rut_y(sl)
+        if len(sl.items) > 1 and any(x[2] for x in sl.items):       # nhóm ý cùng slide: dấu đầu dòng đồng nhất
+            sl.items = [(x[0], x[1], True) for x in sl.items]
         if self._la_the(sl):
             s = self._tao_slide(sl.title)
             self._ve_the(s, sl.items)
@@ -615,7 +802,8 @@ class SlideBuilder:
                 tao.append(s)
         for rows in sl.tables:                              # bảng
             if rows and rows[0]:
-                self._dung_bang(rows, tieu, tao, sl.title)
+                self._dung_bang(rows, tieu, tao, sl.title, chu_thich)
+                chu_thich = []
         k = 0
         while anh:                                          # hình còn lại, mỗi slide tối đa per_slide hình
             n = min(len(anh), im["per_slide"])

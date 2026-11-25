@@ -25,11 +25,19 @@ RE_MUC = re.compile(r"^(?:[IVX]+|\d+)\s*[.)]\s+\S")
 RE_TIEU_MUC = re.compile(r"^\d+(?:\.\d+)+\.?\s+\S")
 
 RE_PHU_LUC = re.compile(r"^PHỤ\s+LỤC\b", re.I)
-RE_DIEU_DONG = re.compile(r"^(Điều\s+\d+[a-zA-Z]?)\s*[:.\-–]\s*(.*)$")
+RE_DIEU_DONG = re.compile(r"^Điều\s+(\d+[a-zA-Z]?)\s*[:.\-–]\s*(.*)$", re.I)
+RE_DONG_CHUONG = re.compile(r"^(Chương|Phần)\s+(?:[IVXLC]+|\d+)\b", re.I)
+RE_SO_MUC = re.compile(r"^(\d+(?:\.\d+)*)\.?\s+\S")
 NGAT_TRANG = "[[ngat-trang]]"
 DO_DAI_QUOC_HIEU = 60          # dòng quốc hiệu/tiêu ngữ thật rất ngắn; câu dài chỉ nhắc tới tên nước thì không phải
 
 TEN_LOAI_NGUOC = {v: k for k, v in TEN_LOAI.items() if v}
+
+
+def _tim_loai(ten: str):
+    """Khóa loại văn bản theo tên in hoa (kể cả loại riêng của thể thức doanh nghiệp/giáo dục) và thể thức chứa nó."""
+    from ..loai_vb import tim_loai
+    return tim_loai(ten)
 
 
 def _bo_dau(s: str) -> str:
@@ -111,6 +119,12 @@ def _het_chu_ky(L: list[Line], k: int, gioi_han: int) -> int:
     return e
 
 
+def _la_dong_ky(t: str) -> bool:
+    """Dòng in hoa có thể là chức vụ người ký; loại tiêu đề Điều/Chương/mục đánh số, phụ lục."""
+    return (_la_hoa(t) and len(t) <= 70 and not RE_DIEU_DONG.match(t) and not RE_DONG_CHUONG.match(t)
+            and not re.match(r"^\d", t) and not RE_PHU_LUC.match(t))
+
+
 def _doi_ngay(d, m, y) -> str:
     try:
         return date(int(y), int(m), int(d)).isoformat()
@@ -134,8 +148,12 @@ def _noi_dung(body: list[Line], phu_luc: bool = False) -> str:
         if RE_PAREN.match(t) and len(t) < 40 and not phu_luc:
             continue
         md = RE_DIEU_DONG.match(t)
-        if md and not phu_luc and len(t) <= 160:
-            out.append(f"{md.group(1)}. {md.group(2)}".strip())   # \"Điều 1: Tên\" -> \"Điều 1. Tên\" (đúng thể thức)
+        if md and not phu_luc and len(t) <= 160 and md.group(2).strip():
+            out.append(f"Điều {md.group(1)}. {md.group(2)}".strip())   # "ĐIỀU 1: Tên" -> "Điều 1. Tên" (đúng thể thức)
+            continue
+        from ..renderers.cong_van import RE_TIEU_DE_RIENG
+        if len(t) <= 150 and (RE_DONG_CHUONG.match(t) or RE_TIEU_DE_RIENG.match(t)) and not RE_PAREN.match(t):
+            out.append(t)                      # Chương/Phần/Mục lục/Phụ lục...: để bộ dựng nhận ra, xuống trang, vào khung điều hướng
             continue
         if phu_luc and ln.heading:
             out.append({1: "> ", 2: "# "}.get(ln.heading, "## ") + t)
@@ -143,23 +161,28 @@ def _noi_dung(body: list[Line], phu_luc: bool = False) -> str:
         gach = re.match(rf"^{DASH}\s+(.*)$", t)
         ngan_khong_cham = len(t) <= 100 and not t.endswith((".", ";", ",", ":"))
         la_muc = (ln.bold or _la_hoa(t) or ngan_khong_cham)
+        so_muc = RE_SO_MUC.match(t)
+        cap_so = min(so_muc.group(1).count(".") + 1, 4) if so_muc else 0
+        dau_cap = {1: "# ", 2: "## ", 3: "### ", 4: "#### "}
         if (ln.align == "center" and ln.bold and len(t) <= 100
                 and (_la_hoa(t) or t.endswith(":"))):
             out.append("> " + t)
+        elif ln.heading and cap_so and len(t) <= 150:
+            out.append(dau_cap[cap_so] + t)
         elif ln.heading:
-            out.append(("# " if ln.heading <= 1 else "## ") + t)
+            out.append(("# " if ln.heading <= 1 else dau_cap[min(ln.heading, 4)]) + t)
         elif gach:
             out.append("- " + gach.group(1))
         elif ln.bullet:
-            out.append("- " + t)
-        elif RE_TIEU_MUC.match(t) and la_muc and len(t) <= 100:
-            out.append("## " + t)
+            out.append("- " + (ln.md or t))
+        elif cap_so and la_muc and len(t) <= 100 and (cap_so > 1 or RE_MUC.match(t)):
+            out.append(dau_cap[cap_so] + t)
         elif RE_MUC.match(t) and la_muc and len(t) <= 100:
             out.append("# " + t)
         elif ln.bold and ngan_khong_cham and (phu_luc or not _la_hoa(t)) and ln.align != "center":
             out.append("# " + t)
         else:
-            out.append(t)
+            out.append(ln.md if (ln.md and (ln.md.startswith("**") or not re.match(r"^(Căn cứ\b|(QUYẾT ĐỊNH|QUYẾT NGHỊ|NGHỊ QUYẾT|QUY ĐỊNH)\s*:$)", t))) else t)
     return "\n".join(out)
 
 
@@ -211,9 +234,15 @@ def phan_tich(lines: list[Line]) -> tuple[dict, list[str]]:
     # --- tên loại + trích yếu
     i_loai = None
     for i in range(min(n, 40)):
-        key = TEN_LOAI_NGUOC.get(L[i].text.strip().upper().rstrip(":"))
+        ten_l = L[i].text.strip().upper().rstrip(":")
+        key = TEN_LOAI_NGUOC.get(ten_l)
+        the_thuc_goi_y = None
+        if key is None and i not in used:
+            key, the_thuc_goi_y = _tim_loai(ten_l)
         if key and i not in used and L[i].text.isupper() and not L[i].text.endswith(":"):
             f["loai_van_ban"], i_loai = key, i
+            if the_thuc_goi_y:
+                f["the_thuc_goi_y"] = the_thuc_goi_y
             used.add(i)
             break
     if i_loai is not None:
@@ -272,6 +301,11 @@ def phan_tich(lines: list[Line]) -> tuple[dict, list[str]]:
         warns.append("Không nhận diện được cơ quan ban hành, hãy điền thủ công.")
 
     bat_dau = (max(used) + 1) if used else 0
+    # dòng ở phần đầu không thuộc thành phần thể thức nào (vd. "Mã biểu mẫu", "Ngày lập"): giữ lại ở đầu nội dung, không bỏ
+    giu_dau = [i for i in range(bat_dau) if i not in used and L[i].kind in ("text", "bang", "hinh", "muc_luc")]
+    if giu_dau:
+        warns.append(f"Có {len(giu_dau)} dòng ở phần đầu không thuộc thành phần thể thức nào "
+                     f"(ví dụ “{L[giu_dau[0]].text[:40]}”): đã giữ lại ở đầu phần nội dung.")
 
     # --- nơi nhận + chữ ký + phụ lục (phần nằm sau chữ ký)
     ket_thuc = n
@@ -291,20 +325,21 @@ def phan_tich(lines: list[Line]) -> tuple[dict, list[str]]:
             [L[x].text for x in range(k, e) if L[x].kind == "text"])
         ket_thuc, bat_dau_pl = i_nn, e
     else:
-        warns.append("Không thấy mục “Nơi nhận”, hãy điền nơi nhận.")
+        if f["loai_van_ban"] in TEN_LOAI:
+            warns.append("Không thấy mục “Nơi nhận”, hãy điền nơi nhận.")
         i_pl = next((i for i in range(bat_dau, n) if L[i].kind == "text" and RE_PHU_LUC.match(L[i].text)), n)
         h = i_pl                                     # chỉ tìm chữ ký trước phụ lục
         k = next((i for i in range(max(bat_dau, h - 6), h)
-                  if L[i].kind == "text" and (RE_KY.match(L[i].text) or _la_hoa(L[i].text))), None)
-        if k is not None:
-            e = _het_chu_ky(L, k, h)
+                  if L[i].kind == "text" and (RE_KY.match(L[i].text) or _la_dong_ky(L[i].text))), None)
+        e = _het_chu_ky(L, k, h) if k is not None else h
+        if k is not None and e >= h:                 # khối ký phải nằm ở cuối thân văn bản; còn chữ/bảng phía sau thì đó không phải chữ ký
             f["quyen_han_ky"], f["chuc_vu_ky"], f["nguoi_ky"] = _chu_ky(
                 [L[x].text for x in range(k, e) if L[x].kind == "text"])
             ket_thuc = k
         else:
             ket_thuc = h
         bat_dau_pl = i_pl
-    if not f["nguoi_ky"]:
+    if not f["nguoi_ky"] and f["loai_van_ban"] in TEN_LOAI:
         warns.append("Chưa nhận diện được họ tên người ký, hãy kiểm tra phần chữ ký.")
 
     # --- phụ lục: mọi thứ sau chữ ký được giữ nguyên, không đưa vào khối chữ ký
@@ -319,7 +354,7 @@ def phan_tich(lines: list[Line]) -> tuple[dict, list[str]]:
         n_bang = sum(1 for x in pl if x.kind == "bang")
         warns.append(f"Có phần phụ lục sau chữ ký ({len(pl)} dòng, {n_bang} bảng): đã giữ nguyên ở trang riêng"
                      f"{', khổ giấy ngang' if f['phu_luc_ngang'] else ''}. Hãy xem lại phần Phụ lục trong form.")
-    f["noi_dung"] = _noi_dung(L[bat_dau:ket_thuc])
+    f["noi_dung"] = _noi_dung([L[i] for i in giu_dau] + L[bat_dau:ket_thuc])
     ngoai = [i for i, ln in enumerate(L) if ln.kind not in ("text", "ngat")
              and not (bat_dau <= i < ket_thuc) and i < bat_dau_pl]
     if ngoai:

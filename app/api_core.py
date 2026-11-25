@@ -152,6 +152,9 @@ def _import(q: dict, body: bytes) -> Resp:
         lines = moi
     fields, w1 = phan_tich(lines)
     canh = list(w0) + list(w1) + ky_tu_la.tom_tat(la, da_don)
+    if ext == ".docx":                          # đối chiếu đầy đủ: mọi từ của file gốc phải còn trong kết quả
+        from .importers import doi_chieu
+        canh = doi_chieu.canh_bao(body, fields) + canh
     return _json({"fields": fields, "canh_bao": canh, "hinh": hinh,
                   "ky_tu_la": [d.to_dict() for d in la[:200]], "da_don": da_don})
 
@@ -168,6 +171,18 @@ def _cong_van(q: dict, body: bytes) -> Resp:
     except (FileNotFoundError, ValueError, KeyError) as e:
         raise Loi(400, str(e))
     return _file(content, DOCX_MIME, "van-ban.docx", {"X-Canh-Bao": dau_header(canh)})
+
+
+def _ra_soat(q: dict, body: bytes) -> Resp:
+    from .ra_soat import ra_soat
+    try:
+        d = json.loads(body.decode("utf-8"))
+    except ValueError:
+        raise Loi(422, "Dữ liệu gửi lên không hợp lệ.")
+    pid = d.get("profile") or DEFAULT_PROFILE
+    if pid not in list_profiles():
+        raise Loi(404, "Không có thể thức này.")
+    return _json({"ket_qua": ra_soat(d.get("fields") or {}, pid, d.get("thanh_phan"), d.get("tuy_chinh"))})
 
 
 def _ky_tu_la(q: dict, body: bytes) -> Resp:
@@ -274,7 +289,17 @@ def _slide_chuan_hoa(q: dict, body: bytes) -> Resp:
                                 tuy_chinh=ts["tuy_chinh"], tieu_de_moi=ts["tieu_de_moi"])
     except ValueError as e:
         raise Loi(400, str(e))
-    return _file(out, PPTX_MIME, "slide-chuan.pptx", {"X-Canh-Bao": dau_header(w0 + w1), "X-So-Slide": str(n)})
+    tom_tat = []
+    try:                                              # kiểm tra lại chính file vừa dựng theo tiêu chuẩn của kiểu slide đã chọn
+        from .importers.pptx_reader import doc_pptx
+        from .slide_lint import phan_tich
+        kq = phan_tich(doc_pptx(out)[0], load_profile(ten_profile(meta.get("kieu", "chuan"))))
+        t = kq["tong"]
+        tom_tat = [f"Kiểm tra tiêu chuẩn sau chuẩn hóa: {t['dat']} đạt, {t['canh_bao']} cảnh báo, {t['loi']} lỗi, "
+                   f"{t['goi_y']} gợi ý (chủ yếu tiêu đề chưa là câu kết luận: hãy sửa từng slide ở mục tiêu đề)."]
+    except Exception:
+        pass
+    return _file(out, PPTX_MIME, "slide-chuan.pptx", {"X-Canh-Bao": dau_header(tom_tat + w0 + w1), "X-So-Slide": str(n)})
 
 
 # --------------------------------------------------------------- thông tin
@@ -334,6 +359,14 @@ def _dinh_tuyen(m: str, p: str, q: dict, body: bytes) -> Resp:
         if p == "/api/tac-gia":
             return _json({"chu_ky": ban_quyen.CHU_KY, "ban_quyen": ban_quyen.BAN_QUYEN})
         if p == "/api/loai-van-ban":
+            pid = str(q.get("the_thuc", "")).strip()
+            if pid:
+                if pid not in list_profiles():
+                    raise Loi(404, "Không có thể thức này.")
+                from .loai_vb import loai_cua_profile
+                return _json({"loai": {k: {"nhan": e["nhan"], "kinh_gui": e["kinh_gui"], "goi_y": e.get("goi_y", ""),
+                                           "trich_yeu_nhan": e.get("trich_yeu_nhan", ""), "muc": [m["ten"] for m in e["muc"]]}
+                                       for k, e in loai_cua_profile(load_profile(pid)).items()}})
             return _json({k: (v or "Công văn") for k, v in TEN_LOAI.items()})
         if p == "/api/thong-tin":
             return _thong_tin(q)
@@ -347,7 +380,7 @@ def _dinh_tuyen(m: str, p: str, q: dict, body: bytes) -> Resp:
             except (ValueError, FileNotFoundError) as e:
                 raise Loi(404, str(e))
     elif m == "POST":
-        tuyen = {"/api/import": _import, "/api/cong-van/docx": _cong_van, "/api/ky-tu-la": _ky_tu_la,
+        tuyen = {"/api/import": _import, "/api/cong-van/docx": _cong_van, "/api/ra-soat": _ra_soat, "/api/ky-tu-la": _ky_tu_la,
                  "/api/pdf/phan-tich": _pdf_phan_tich, "/api/pdf/xu-ly": _pdf_xu_ly,
                  "/api/slide/phan-tich": _slide_phan_tich, "/api/slide/chuan-hoa": _slide_chuan_hoa}
         if p in tuyen:
